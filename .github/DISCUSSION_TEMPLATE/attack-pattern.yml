@@ -1,0 +1,59 @@
+title: "[Pattern] "
+labels: ["attack-pattern"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe an attack pattern sshsentry caught (or missed) so others can recognize it.
+
+        **Do not post** your own server IPs, hostnames, real usernames on your systems, raw logs that
+        contain them, webhook URLs, or secrets. Attacker IPs are optional. Only include public
+        addresses (no private/internal ranges), and only ones you're comfortable publishing.
+  - type: textarea
+    id: description
+    attributes:
+      label: Pattern description
+      description: What happened, in plain words (for example "slow brute force, 3 attempts per IP across hundreds of IPs").
+    validations:
+      required: true
+  - type: dropdown
+    id: rule
+    attributes:
+      label: Rule that fired
+      multiple: true
+      options:
+        - brute_force
+        - login_after_failures
+        - brute_force_success (escalation)
+        - new_ip
+        - new_country
+        - new_user
+        - new_ssh_key
+        - None (sshsentry missed it)
+    validations:
+      required: true
+  - type: textarea
+    id: counts
+    attributes:
+      label: Counts and timeframe
+      description: For example "about 4,000 failures from 900 IPs over 6 hours; at most 4 per IP per 10 minutes".
+    validations:
+      required: true
+  - type: textarea
+    id: attacker-ips
+    attributes:
+      label: Attacker IPs (optional, public only)
+      description: Public attacker addresses only. Never your own or private ranges (10.x, 172.16-31.x, 192.168.x, 100.64.x, fc00::/7).
+      render: text
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Mitigation
+      description: What you did and whether it helped (fail2ban, firewall, key-only SSH, threshold change...).
+  - type: checkboxes
+    id: redacted
+    attributes:
+      label: Privacy check
+      options:
+        - label: This post has no server IPs, hostnames, my users' usernames, webhook URLs, or secrets.
+          required: true

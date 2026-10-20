@@ -1,0 +1,6 @@
+[2026-10-17 01:58:02] LOW: New IP login. User 'chris' logged in via publickey from 198.51.100.23, an address never seen for this user (first recorded login). If expected, approve it with: sshsentry.py --approve 198.51.100.23
+[2026-10-17 02:10:31] MEDIUM: Brute force. 5 failed SSH logins from 203.0.113.45 in 30 sec, trying user(s): admin, oracle, root, test. Consider fail2ban, a firewall block, or disabling password logins.
+[2026-10-17 02:15:41] MEDIUM: Brute force. 5 failed SSH logins from 192.0.2.77 in 49 sec, trying user(s): deploy. Consider fail2ban, a firewall block, or disabling password logins.
+[2026-10-17 02:16:08] HIGH: Login after failures. User 'deploy' logged in via password from 192.0.2.77 after 6 failed attempts from that IP. If this wasn't you, change the password, check ~/.ssh/authorized_keys and review running processes.
+[2026-10-17 02:16:08] LOW: New IP login. User 'deploy' logged in via password from 192.0.2.77, an address never seen for this user (first recorded login). If expected, approve it with: sshsentry.py --approve 192.0.2.77
+[2026-10-17 02:47:33] LOW: New IP login. User 'chris' logged in via publickey from 100.64.12.9, an address never seen for this user. If expected, approve it with: sshsentry.py --approve 100.64.12.9

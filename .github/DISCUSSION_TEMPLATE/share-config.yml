@@ -1,0 +1,62 @@
+title: "[Config] "
+labels: ["config"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share how you run sshsentry so others can compare thresholds.
+
+        **Before posting, redact:** your server IPs, hostnames, usernames, email addresses,
+        webhook URLs (Slack or other), SMTP passwords, API tokens, and any other secrets.
+        Replace them with placeholders such as `<server-ip>`, `<host>`, or `<redacted>`.
+  - type: dropdown
+    id: server-type
+    attributes:
+      label: Server type
+      options:
+        - VPS / cloud VM
+        - Dedicated server
+        - Home server / homelab
+        - Raspberry Pi / small board
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: sshsentry version
+      description: Shown as sshsentry_version in --show-shared output, or VERSION in sshsentry.py.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: textarea
+    id: thresholds
+    attributes:
+      label: Thresholds
+      description: Your `rules:` settings (for example brute_force failures / window_minutes, cooldown_minutes). Redact paths that reveal usernames.
+      render: yaml
+      placeholder: |
+        rules:
+          brute_force: {failures: 5, window_minutes: 10}
+          login_after_failures: {failures: 5, lookback_minutes: 60}
+        cooldown_minutes: 60
+    validations:
+      required: true
+  - type: textarea
+    id: learn-mode
+    attributes:
+      label: Learn-mode suggestion (optional)
+      description: Paste the output of `sshsentry.py --suggest-threshold` and say whether you accepted it.
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: False positives, alert destinations you use (no URLs), anything that surprised you.
+  - type: checkboxes
+    id: redacted
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed server IPs, hostnames, usernames, email addresses, webhook URLs, and all secrets.
+          required: true

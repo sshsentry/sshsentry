@@ -1,0 +1,5 @@
+include README.md LICENSE sshsentry.yaml sample-auth.log
+prune demo
+prune tests
+prune .github
+global-exclude __pycache__ *.pyc

@@ -1,0 +1,25 @@
+# Build artifacts
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+_site/
+
+# Virtual environments
+.venv/
+venv/
+env/
+sentvenv/
+
+# Local databases and logs (keep the bundled sample)
+*.db
+*.sqlite
+*.sqlite3
+*.log
+!sample-auth.log
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

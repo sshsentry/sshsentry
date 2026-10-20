@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sshsentry"
+version = "0.1.0"
+description = "Plain-English SSH intrusion alerts for Linux servers (detection only)."
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{name = "sshsentry", email = "sshsentry@gmail.com"}]
+# sshsentry.py imports PyYAML at module load, so it is a required runtime dependency.
+dependencies = ["PyYAML>=5.1"]
+keywords = ["ssh", "intrusion-detection", "security", "auth-log", "monitoring"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: System :: Monitoring",
+]
+
+[project.urls]
+Homepage = "https://github.com/sshsentry/sshsentry"
+Source = "https://github.com/sshsentry/sshsentry"
+Issues = "https://github.com/sshsentry/sshsentry/issues"
+
+[project.scripts]
+sshsentry = "sshsentry:main"
+
+[tool.setuptools]
+py-modules = ["sshsentry"]
+packages = []

