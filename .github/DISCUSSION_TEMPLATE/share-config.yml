@@ -26,7 +26,7 @@ body:
     attributes:
       label: sshsentry version
       description: Shown as sshsentry_version in --show-shared output, or VERSION in sshsentry.py.
-      placeholder: "0.2.0"
+      placeholder: "0.1.0"
     validations:
       required: true
   - type: textarea

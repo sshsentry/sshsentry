@@ -23,7 +23,7 @@ You'll see the alerts (two brute-force attacks, a login after failures, and new-
 
 **Even quicker: the demo page.** Open `demo/index.html` in any browser (no Python, no install, nothing uploaded). It shows the same 6 alerts and digest for the bundled log, and you can paste your own log or change thresholds. It's a JavaScript *port* of the detection rules, escalation and digest, for demo purposes; the Python script is the real tool. GeoIP, the passwd/authorized_keys checks and delivery aren't in the demo. After the CRITICAL alert, the walkthrough plays a **simulated responder** (`sshsentry --respond`): it asks before each step (lock the account, block the IP, rotate the password, replace keys), runs read-only checks and ends with a verdict. Today sshsentry only detects and alerts. The responder is a planned feature, shown only as a simulation in the demo; it is **not yet in the Python tool** and is not included in this release. In the demo nothing runs on any real server. See the Disclaimer below before using --respond. It also has a **savings calculator** that puts admin time saved first and a clearly labeled breach-risk *estimate* second, with every assumption and source listed. Screenshots: `demo/screenshot.png`, `demo/responder.png` and `demo/calculator.png`. To check the demo against the Python tool and the published worked examples, run `python3 demo/verify_demo.py`, `verify_calculator.py`, `verify_walkthrough.py`, `verify_responder.py` and `verify_disclaimer.py` (they need google-chrome), or `python3 tests/run_all.py --demo`.
 
-To host it on **GitHub Pages**: push the repo, then go to *Settings → Pages → Build and deployment*, choose *Deploy from a branch*, and pick `main` and `/ (root)`. The demo will be live at `https://<owner>.github.io/sshsentry/demo/`. It's one static file with no external scripts, so any static host works too.
+**Live demo:** <https://sshsentry.github.io/sshsentry/> (moving to <https://sshsentry.com> once DNS is set up). The repo publishes `demo/` with a GitHub Actions workflow (`.github/workflows/pages.yml`); see `GITHUB_SETUP.md` for the Pages, custom-domain and DNS steps. It's one static file with no external scripts, so any static host works too.
 
 ## What it alerts on
 
@@ -353,7 +353,7 @@ python3 sshsentry.py -c $T/test.yaml --db $T/s.db --replay $T/empty.log      # 2
 
 ## Community
 
-Discussions happen on GitHub Discussions: <https://github.com/<owner>/sshsentry/discussions>
+Discussions happen on GitHub Discussions: <https://github.com/sshsentry/sshsentry/discussions>
 - **Configs:** share your thresholds and learn-mode suggestions (form: `.github/DISCUSSION_TEMPLATE/share-config.yml`).
 - **Attack patterns:** describe what you saw and what helped (form: `.github/DISCUSSION_TEMPLATE/attack-pattern.yml`).
 
