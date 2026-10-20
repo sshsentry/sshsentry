@@ -17,9 +17,9 @@
 10. [x] Design doc, business plan, Substack outline, privacy policy draft, and CrowdSec research
 
 ## Yours to do (in order)
-11. [ ] **Claim the name:** the GitHub account or org `sshsentry`, the PyPI name `sshsentry`, and a domain (sshsentry.dev or .com, which looked free).
-12. [ ] **Publish the GitHub repo:** push the project files and pick the MIT license.
-13. [ ] **Enable Discussions:** follow `SETUP-DISCUSSIONS.md`, then replace `<owner>` in the README link.
+11. [x] **Claim the name:** GitHub account `sshsentry` claimed, PyPI account `sshsentry` created (2FA on), and sshsentry.com/.dev/.org bought. Still open: create a PyPI API token and run `twine upload dist/*` to reserve the PyPI project name (see `PUBLISHING.md`).
+12. [x] **Publish the GitHub repo:** public at https://github.com/sshsentry/sshsentry (MIT, `LICENSE`).
+13. [ ] **Enable Discussions:** Discussions turned on, `config`/`attack-pattern` labels created, and the README link fixed. Still to do: create the **Configs** (`share-config`) and **Attack patterns** (`attack-pattern`) categories in the web UI (steps 3, 6, 7 of `SETUP-DISCUSSIONS.md`).
 14. [ ] **Pick a default threshold:** keep 5 failures in 10 minutes, or run learn mode for a few days and accept its suggestion.
 15. [ ] **Choose alerting destinations:** email, Slack, or webhook, then add their settings in `sshsentry.yaml`. Run `--test-alerts` to confirm each one works.
 16. [ ] **Test on a real server:** install it as a systemd service and watch for false alarms for a week.
@@ -31,5 +31,5 @@
 20. [x] **Daily digest** with local records, `--digests`/`--digest`/`--resend`, and `--export-digests` zip + `.sha256` sidecar.
 21. [x] **`--format json`** for the digest, threshold, sharing, export and verify commands (versioned `schema` field).
 22. [x] **Digest hash chain** (`prev_hash`/`chain_hash`, upgrade backfill, hash in delivered digests) plus `--verify-chain` and `--verify-export [--expected-head]`.
-23. [ ] **Publish the demo:** enable GitHub Pages (Settings → Pages → `main`, `/ (root)`) and link `https://<owner>.github.io/sshsentry/demo/` from the README and launch posts.
+23. [x] **Publish the demo:** live at https://sshsentry.github.io/sshsentry/ through the Actions workflow `.github/workflows/pages.yml`, and linked from the README. Still to do: move it to the custom domain sshsentry.com once DNS is ready (`GITHUB_SETUP.md` steps 4-6).
 24. [ ] **Future:** optional digest signing with a key kept off the server (the chain is tamper-evident only).
