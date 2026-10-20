@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sshsentry"
-version = "0.1.0"
+version = "0.2.0"
 description = "Plain-English SSH intrusion alerts for Linux servers (detection only)."
 readme = {file = "README.md", content-type = "text/markdown"}
 license = "MIT"
