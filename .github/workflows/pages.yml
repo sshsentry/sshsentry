@@ -26,7 +26,8 @@ jobs:
       - name: Assemble site (static files only, no verify scripts)
         run: |
           mkdir _site
-          cp demo/index.html demo/*.png demo/CNAME _site/
+          cp demo/*.html demo/*.png demo/sitemap.xml demo/robots.txt demo/CNAME _site/
+          cp -r demo/assets demo/docs _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

@@ -1,8 +1,8 @@
-# Headless check (needs google-chrome): the live walkthrough in index.html, stepped to the end, must show the
+# Headless check (needs google-chrome): the live walkthrough in try.html, stepped to the end, must show the
 # engine's alerts (MEDIUM brute force, then CRITICAL escalation) and the digest the engine produces, and must
 # not autoplay under prefers-reduced-motion. Run: python3 demo/verify_walkthrough.py
 import subprocess, json, re, html, os, sys
-PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html"); ok = True
+PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "try.html"); ok = True
 def dom(q="", budget=3000, extra=()):
     return subprocess.run(["google-chrome", "--headless=new", "--no-sandbox", "--disable-gpu", f"--virtual-time-budget={budget}",
                            *extra, "--dump-dom", f"file://{PAGE}{q}"], capture_output=True, text=True, timeout=90).stdout

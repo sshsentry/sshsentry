@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy | sshsentry</title><meta name="description" content="What sshsentry keeps on your machine and what opt-in sharing sends."><link rel="canonical" href="https://sshsentry.com/privacy.html">
+<meta name="theme-color" content="#09090b"><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%2309090b'/><path d='M12 4l7 2.6v5.2c0 3.9-3 7.2-7 7.8-4-.6-7-3.9-7-7.8V6.6L12 4z' fill='none' stroke='%232dd4bf' stroke-width='1.8'/><path d='M9 12l2 2 4-4' fill='none' stroke='%232dd4bf' stroke-width='1.8'/></svg>">
+<meta property="og:type" content="website"><meta property="og:site_name" content="sshsentry"><meta property="og:title" content="Privacy policy | sshsentry">
+<meta property="og:description" content="What sshsentry keeps on your machine and what opt-in sharing sends."><meta property="og:url" content="https://sshsentry.com/privacy.html"><meta property="og:image" content="https://sshsentry.com/assets/og.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://sshsentry.com/assets/og.jpg"><link rel="stylesheet" href="/assets/site.css"></head>
+<body><nav class="nav" aria-label="Main"><div class="wrap"><a class="brand" href="/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>sshsentry</a><ul><li><a href="/features.html">Features</a></li><li><a href="/docs/">Docs</a></li><li><a href="/try.html">Try it live</a></li><li><a href="https://github.com/sshsentry/sshsentry/discussions/categories/configs">Community</a></li><li><a class="gh" href="https://github.com/sshsentry/sshsentry">GitHub</a></li></ul></div></nav><main><div class="wrap" style="padding:48px 24px 80px"><article class="doc" style="margin:0 auto"><h1>sshsentry Privacy Policy</h1>
+<p>&gt; <strong>Draft only.</strong> This is not legal advice. Have a lawyer review it before you publish.</p>
+<p><em>Last updated: [DATE]</em> · <em>Contact: sshsentry@gmail.com</em></p>
+<h2>The Short Version</h2>
+<ul>
+<li><strong>By default, nothing leaves your server.</strong> sshsentry keeps what it learns in a small database on your own machine.</li>
+<li><strong>Sharing is off unless you turn it on.</strong> If you opt in, sshsentry sends only basic facts about attacks: the attacker's IP address, which rule caught it, and when.</li>
+<li><strong>sshsentry never sends</strong> your logs, passwords, usernames, hostname, or anything that identifies you or your server.</li>
+<li><strong>Shared data may be combined with other users' data and sold</strong> as threat intelligence, such as lists of known attacking IPs. Your identity is never included.</li>
+<li><strong>You can stop sharing and ask us to delete your contributions at any time.</strong></li>
+</ul>
+<h2>1. Data Stored on Your Machine</h2>
+<p>sshsentry reads your server's login logs (for example <code>/var/log/auth.log</code> or <code>/var/log/secure</code>), plus <code>/etc/passwd</code> and <code>authorized_keys</code> files. It saves the following in a local SQLite file (<code>/var/lib/sshsentry/state.db</code> by default):</p>
+<ul>
+<li>IP addresses and countries that have logged in to each user account, so it can spot a "new" location</li>
+<li>Recent failed login attempts, used to detect brute force</li>
+<li>A baseline of system users and fingerprints of SSH keys</li>
+<li>Alert history and timestamps</li>
+<li>IP addresses you have approved</li>
+<li>If you opt in to sharing: a record of each report sent or attempted, and your random installation ID</li>
+<li>If you turn on learn mode: counts of failed logins per IP per time window</li>
+<li>If you turn on the daily digest: successful logins from the last 7 days (user, IP, time) and each day's digest, stored in the database and as text files</li>
+</ul>
+<p><strong>This data stays on your machine.</strong> We can't see it. You can delete it anytime by removing the database file. If you turn on email, Slack, or webhook alerts or the daily digest, the message text (which can include usernames and IP addresses) goes to the service you configure, under that service's own privacy terms.</p>
+<h2>2. What Optional Sharing Sends</h2>
+<p>Sharing is <strong>off by default</strong>. If you turn it on, each report includes only:</p>
+<ul>
+<li><strong>The attacking IP address</strong> (the source of the suspicious activity, not your server's address)</li>
+<li><strong>The detection rule</strong> that fired (for example, <code>brute_force</code>)</li>
+<li><strong>A timestamp</strong> of the attack, in UTC, rounded down to the minute</li>
+<li><strong>The sshsentry version number</strong></li>
+<li><strong>A random installation ID</strong>, generated locally the first time a report is sent and not tied to your name, email, or server, so you can ask us to delete your contributions later</li>
+</ul>
+<p><strong>sshsentry never sends:</strong> raw log lines, passwords, usernames (including the ones attackers guessed), your hostname, your server's IP, file contents, SSH keys, your email settings, or any other personal data.</p>
+<p>Only two attack rules are shared: <code>brute_force</code> (repeated failed logins) and <code>login_after_failures</code> (a successful login from an IP that just failed repeatedly). <strong>Never shared:</strong> new-IP or new-country logins, new-user or new-SSH-key alerts, IP addresses you have approved, private or local network addresses, and test replays (<code>--replay</code>).</p>
+<h2>3. How Shared Data Is Kept Anonymous</h2>
+<ul>
+<li><strong>Attacking IPs are shared as they are,</strong> because a blocklist only works with real addresses.</li>
+<li>No user identity, hostname, server address, or account information is ever attached to a report.</li>
+<li>Reports are linked only to the random installation ID. We don't connect that ID to any other information about you.</li>
+<li>We don't log the address your server connects from beyond what our server needs to receive the report. Those connection logs are deleted within <strong>[7] days</strong>.</li>
+<li>Data that we sell or publish is combined first, for example "this IP was reported by 40 installations this week," and never includes installation IDs.</li>
+</ul>
+<p><em>Note: in some places, such as under the EU's GDPR, an IP address can count as personal data even when it belongs to an attacker. Ask your lawyer about this.</em></p>
+<h2>4. Retention</h2>
+<ul>
+<li><strong>Individual reports:</strong> kept for <strong>[90] days</strong>, then deleted or folded into combined statistics.</li>
+<li><strong>Combined blocklist entries:</strong> an IP stays listed while it's still being reported and drops off after <strong>[30] days</strong> without new reports.</li>
+<li><strong>Combined statistics</strong> (counts and trends that can't be traced to any installation): may be kept indefinitely.</li>
+<li><strong>Server connection logs:</strong> deleted within <strong>[7] days</strong>.</li>
+</ul>
+<h2>5. Your Choices</h2>
+<ul>
+<li><strong>Opt in:</strong> set <code>sharing.enabled: true</code> in <code>sshsentry.yaml</code> and restart sshsentry.</li>
+<li><strong>Opt out:</strong> set it back to <code>false</code>. Sharing stops right away.</li>
+<li><strong>See what's sent:</strong> run <code>sshsentry.py --show-shared</code> to list every report this installation has sent or tried to send: attacking IP, rule, timestamp, send time, and status. The exact report format is in the README.</li>
+<li><strong>Delete your contributions:</strong> run <code>sshsentry.py --forget-me</code>. It deletes your sharing history from the local database right away, discards your installation ID, and, if a sharing endpoint is configured, sends us a deletion request with that ID. The request is best-effort; if it fails, email us at sshsentry@gmail.com with the installation ID it prints. <code>--forget-me</code> doesn't turn sharing off. We will delete your individual reports within <strong>[30] days</strong>. Data that has already been combined and stripped of installation IDs can't be separated back out.</li>
+<li><strong>Use it without sharing:</strong> every detection feature works with sharing turned off.</li>
+</ul>
+<h2>6. Third Parties</h2>
+<p><strong>Who may buy combined data:</strong></p>
+<ul>
+<li>Security companies</li>
+<li>Hosting and cloud providers</li>
+<li>Firewall and content-delivery (CDN) vendors</li>
+<li>Researchers and organizations protecting their own networks</li>
+</ul>
+<p><strong>What they receive:</strong></p>
+<ul>
+<li>Attacking IP addresses with threat scores</li>
+<li>Which detection rules fired</li>
+<li>First-seen and last-seen times, and report counts</li>
+</ul>
+<p><strong>What they never receive:</strong> installation IDs, data from any single installation, or anything that identifies sshsentry users.</p>
+<p><strong>Our service providers:</strong></p>
+<ul>
+<li>We use hosting providers to run the collection server, under contracts that protect the data.</li>
+<li>We share data with law enforcement only when the law requires it.</li>
+<li>If the project or the sharing service changes owners, this policy applies until users are notified of any change.</li>
+</ul>
+<p><strong>We never sell</strong> information about sshsentry users. We sell only combined information about attackers.</p>
+<h2>7. Security</h2>
+<p>Reports are sent over HTTPS (encrypted in transit); sshsentry refuses non-HTTPS endpoints except <code>localhost</code> for testing. Access to the collection server is limited to the maintainers. Report security problems through <code>SECURITY.md</code> in the GitHub repo.</p>
+<h2>8. Changes</h2>
+<p>We will announce meaningful changes in the GitHub repo and the release notes at least <strong>[30] days</strong> before they take effect. A change that widens what gets shared will <strong>never</strong> switch on automatically; you'll have to opt in again.</p>
+<h2>9. Contact</h2>
+<p>Questions or deletion requests: <strong>sshsentry@gmail.com</strong> or open an issue on GitHub.</p></article></div></main><footer class="site"><div class="wrap"><div class="cols">
+<div><a class="brand" href="/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>sshsentry</a><p style="max-width:340px;margin-top:10px">Plain-English SSH alerts for small Linux servers. Detection only. MIT licensed, free and open source.</p></div>
+<div><h5>Project</h5><ul><li><a href="https://github.com/sshsentry/sshsentry">GitHub</a></li><li><a href="https://pypi.org/project/sshsentry/">PyPI</a></li><li><a href="https://github.com/sshsentry/sshsentry/issues">Issues</a></li><li><a href="https://github.com/sshsentry/sshsentry/blob/main/LICENSE">MIT license</a></li></ul></div>
+<div><h5>Community</h5><ul><li><a href="https://github.com/sshsentry/sshsentry/discussions/categories/configs">Discussions: Configs</a></li><li><a href="https://github.com/sshsentry/sshsentry/discussions/categories/attack-patterns">Discussions: Attack patterns</a></li><li><a href="https://github.com/sshsentry/sshsentry/discussions">All discussions</a></li></ul></div>
+<div><h5>More</h5><ul><li><a href="/docs/">Docs</a></li><li><a href="/privacy.html">Privacy policy</a></li><li><a href="mailto:sshsentry@gmail.com">sshsentry@gmail.com</a></li></ul></div>
+</div><div class="fp">page sha256:3d7ab1d6f4d3e43c3ee48cf2b7c4e1f025942139 &middot; static &middot; no trackers &middot; no third-party scripts</div></div></footer><script>document.querySelectorAll(".copy").forEach(function(b){b.addEventListener("click",function(){var t=b.getAttribute("data-copy");
+(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="copied"},function(){b.textContent="select + copy"});
+setTimeout(function(){b.textContent="copy"},1600)})})</script></body></html>

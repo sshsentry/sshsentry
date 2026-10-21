@@ -1,8 +1,8 @@
-# Headless check (needs google-chrome): the savings calculator in index.html must reproduce the worked
+# Headless check (needs google-chrome): the savings calculator in try.html must reproduce the worked
 # examples in sshsentry-financial-analysis.md (section 3) with its default inputs, and handle "no manual review".
 # Run: python3 demo/verify_calculator.py
 import subprocess, json, re, html, os, sys
-PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html"); ok = True
+PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "try.html"); ok = True
 def page(q=""):
     out = subprocess.run(["google-chrome", "--headless=new", "--no-sandbox", "--disable-gpu", "--virtual-time-budget=3000",
                           "--dump-dom", f"file://{PAGE}{q}"], capture_output=True, text=True, timeout=90).stdout

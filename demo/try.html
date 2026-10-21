@@ -3,9 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>sshsentry: plain-English SSH alerts for small servers (live demo)</title>
+<title>Try it live: sshsentry in your browser</title>
+<meta name="description" content="Paste an SSH auth log and see sshsentry's alerts and daily digest in your browser. Nothing leaves the tab.">
+<meta name="theme-color" content="#09090b"><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%2309090b'/><path d='M12 4l7 2.6v5.2c0 3.9-3 7.2-7 7.8-4-.6-7-3.9-7-7.8V6.6L12 4z' fill='none' stroke='%232dd4bf' stroke-width='1.8'/><path d='M9 12l2 2 4-4' fill='none' stroke='%232dd4bf' stroke-width='1.8'/></svg>">
+<meta property="og:type" content="website"><meta property="og:site_name" content="sshsentry"><meta property="og:title" content="Try it live: sshsentry in your browser">
+<meta property="og:description" content="Paste an SSH auth log and see plain-English alerts in your browser. Nothing is uploaded."><meta property="og:url" content="https://sshsentry.com/try.html">
+<meta property="og:image" content="https://sshsentry.com/assets/og.jpg"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://sshsentry.com/assets/og.jpg">
 <style>
-  :root { --bg:#0f1419; --panel:#161d24; --fg:#e6e6e6; --muted:#9aa5b1; --acc:#4fb3ff; --line:#2a333d;
+  :root { --bg:#09090b; --panel:#111114; --fg:#e4e4e7; --muted:#a1a1aa; --acc:#2dd4bf; --line:#232329;
           --LOW:#8fd18f; --MEDIUM:#ffcc66; --HIGH:#ff8a5c; --CRITICAL:#ff4d6d; }
   * { box-sizing:border-box; }
   body { margin:0; font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--fg); }
@@ -82,8 +87,18 @@
   .verdict { margin-top:10px; padding:10px 12px; border-radius:6px; background:#0b0f13; border:1px solid var(--line); border-left:4px solid; }
 [hidden]{display:none!important}
 </style>
+<style>
+  .sitenav{position:sticky;top:0;z-index:20;background:rgba(9,9,11,.9);border-bottom:1px solid #232329}
+  .sitenav div{max-width:1100px;margin:0 auto;padding:0 18px;display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap}
+  .sitenav a{color:#a1a1aa;font-size:14px;text-decoration:none}.sitenav a:hover{color:#e4e4e7}
+  .sitenav .b{display:flex;gap:8px;align-items:center;color:#e4e4e7;font:600 15px ui-monospace,Menlo,Consolas,monospace;margin-right:auto}.sitenav .b svg{color:#2dd4bf}
+  .sitenav a[aria-current]{color:#2dd4bf}
+  .sitefoot{max-width:1100px;margin:24px auto 40px;padding:18px;border-top:1px solid #232329;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px}
+  .sitefoot a{color:#a1a1aa}
+</style>
 </head>
 <body>
+<nav class="sitenav" aria-label="Main"><div><a class="b" href="/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg> sshsentry</a><a href="/features.html">Features</a><a href="/docs/">Docs</a><a href="/try.html" aria-current="page">Try it live</a><a href="/#community">Community</a></div></nav>
 <header class="hero">
   <h1><span>sshsentry</span>: know when someone is trying to break into your server</h1>
   <p class="pitch">For small business owners and indie operators without a security team: sshsentry reads your SSH logs for you
@@ -792,5 +807,6 @@ $("wt-speed").onchange = () => { if (wt.playing) wtSetPlaying(true); };
   wtSetPlaying(wt.autoplay);
 }
 </script>
+<nav class="sitefoot" aria-label="Footer"><a href="/">Home</a><a href="/features.html">Features</a><a href="/docs/">Docs</a><a href="/#community">Community, GitHub &amp; PyPI</a><a href="/privacy.html">Privacy policy</a><a href="mailto:sshsentry@gmail.com">sshsentry@gmail.com</a><span style="color:#52525b">This page makes no network requests, so it links only within sshsentry.com.</span></nav>
 </body>
 </html>

@@ -1,9 +1,9 @@
-# Checks the disclaimer in README.md and demo/index.html (exact text, placement) and the demo's
+# Checks the disclaimer in README.md and demo/try.html (exact text, placement) and the demo's
 # "In real use" line before the simulated responder. Needs google-chrome for the rendered-page checks.
 # Run: python3 demo/verify_disclaimer.py
 import subprocess, json, re, html, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
-PAGE = os.path.join(HERE, "index.html"); ok = True
+PAGE = os.path.join(HERE, "try.html"); ok = True
 DISCLAIMER = [
     "sshsentry helps you notice and respond to suspicious logins. It can't guarantee your server is secure or stop every break-in.",
     "The responder runs real, destructive commands on your server: it locks accounts, blocks IPs, and rotates passwords and keys. "

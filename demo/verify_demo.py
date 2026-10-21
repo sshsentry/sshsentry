@@ -4,7 +4,7 @@ import subprocess, json, re, html, sys, os, tempfile
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); PY = sys.executable; ok = True
 def chrome(q=""):
     out = subprocess.run(["google-chrome", "--headless=new", "--no-sandbox", "--disable-gpu", "--virtual-time-budget=3000",
-                          "--dump-dom", f"file://{D}/demo/index.html{q}"], capture_output=True, text=True, timeout=90).stdout
+                          "--dump-dom", f"file://{D}/demo/try.html{q}"], capture_output=True, text=True, timeout=90).stdout
     m = re.search(r'<pre id="result" hidden="">(.*?)</pre>', out, re.S)
     return json.loads(html.unescape(m.group(1)))
 def python(extra_yaml=""):
@@ -35,7 +35,7 @@ for name, q, y in [("defaults", "", ""),
     if name == "defaults":
         exp = js["alerts"] == 6 and js["failed_logins"] == 12 and js["distinct_ips"] == 2 and js["top_offender"] == "203.0.113.45"
         ok &= exp; print(f"{'PASS' if exp else 'FAIL'}  expected counts 6 / 12 / 2 / 203.0.113.45")
-src = open(f"{D}/demo/index.html").read()
+src = open(f"{D}/demo/try.html").read()
 selfc = not re.search(r'(src|href)="(https?:)?//', src) and "fetch(" not in src and "XMLHttpRequest" not in src
 ok &= selfc; print(f"{'PASS' if selfc else 'FAIL'}  self-contained (no external src/href, no fetch/XHR)")
 sys.exit(0 if ok else 1)

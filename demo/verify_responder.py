@@ -2,7 +2,7 @@
 # Answers are given through the page's own handlers (real keydown events for y/n/Enter, button clicks for yes/no).
 # Run: python3 demo/verify_responder.py
 import subprocess, json, re, html, os, sys
-PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html"); ok = True
+PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "try.html"); ok = True
 def dom(q="", budget=6000, extra=()):
     return subprocess.run(["google-chrome", "--headless=new", "--no-sandbox", "--disable-gpu", f"--virtual-time-budget={budget}",
                            *extra, "--dump-dom", f"file://{PAGE}{q}"], capture_output=True, text=True, timeout=120).stdout
