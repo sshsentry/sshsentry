@@ -1,31 +1,25 @@
+<p align="center"><img src="https://raw.githubusercontent.com/sshsentry/sshsentry/main/demo/assets/banner.jpg" alt="sshsentry" width="720"></p>
+
 # sshsentry
 
-A free, open source, single-script intrusion **detection** agent for Linux servers. It watches your SSH auth log (plus `/etc/passwd` and `authorized_keys`) and prints plain-English alerts, optionally to email, Slack, or a webhook. It never blocks or attacks anything; pair it with fail2ban, a firewall, and key-only SSH.
-
-## Why this exists
-
-If you run one or a few Linux servers with SSH open, someone is probably guessing passwords on them right now, and nobody is reading the logs. Most SSH monitoring tools are enterprise suites: agents, dashboards, a database, and hours of setup. There's very little that's small and free and just watches the log and tells you when something matters.
-
-sshsentry is one Python script. It reads your auth log, spots brute force, logins after failures, logins from new IPs or countries, and new users or SSH keys, then explains them in plain English on stdout, email, Slack, or a webhook.
-
-It's for indie developers and small businesses. It's not for large fleets or compliance programs. It doesn't block anything (it's not a firewall or fail2ban), and it doesn't see web-app attacks. Optional learn mode can suggest a brute-force threshold from your own traffic.
-
-## Try it in 30 seconds
-
-No install or root needed, just Python 3.9+ and PyYAML. Replay the bundled sample log against a throwaway database:
+**Plain-English SSH intrusion alerts for small Linux servers.** One Python script that watches your SSH auth log, `/etc/passwd` and `authorized_keys`, and tells you when something matters. Free, open source (MIT), detection only.
 
 ```bash
-pip install pyyaml
-python3 sshsentry.py -c sshsentry.yaml --db /tmp/sshsentry-try.db --replay sample-auth.log --digest-now
+pip install sshsentry
 ```
 
-You'll see the alerts (two brute-force attacks, a login after failures, and new-IP logins), followed by the daily digest for that log. Nothing is sent anywhere in `--replay` mode.
+[Website](https://sshsentry.com) · [Try it live in your browser](https://sshsentry.com/try.html) · [Docs](https://sshsentry.com/docs/) · [PyPI](https://pypi.org/project/sshsentry/) · [Discussions](https://github.com/sshsentry/sshsentry/discussions)
 
-**Even quicker: the demo page.** Open `demo/index.html` in any browser (no Python, no install, nothing uploaded). It shows the same 6 alerts and digest for the bundled log, and you can paste your own log or change thresholds. It's a JavaScript *port* of the detection rules, escalation and digest, for demo purposes; the Python script is the real tool. GeoIP, the passwd/authorized_keys checks and delivery aren't in the demo. After the CRITICAL alert, the walkthrough plays a **simulated responder** (`sshsentry --respond`): it asks before each step (lock the account, block the IP, rotate the password, replace keys), runs read-only checks and ends with a verdict. Today sshsentry only detects and alerts. The responder is a planned feature, shown only as a simulation in the demo; it is **not yet in the Python tool** and is not included in this release. In the demo nothing runs on any real server. See the Disclaimer below before using --respond. It also has a **savings calculator** that puts admin time saved first and a clearly labeled breach-risk *estimate* second, with every assumption and source listed. Screenshots: `demo/screenshot.png`, `demo/responder.png` and `demo/calculator.png`. To check the demo against the Python tool and the published worked examples, run `python3 demo/verify_demo.py`, `verify_calculator.py`, `verify_walkthrough.py`, `verify_responder.py` and `verify_disclaimer.py` (they need google-chrome), or `python3 tests/run_all.py --demo`.
+<p align="center"><img src="https://raw.githubusercontent.com/sshsentry/sshsentry/main/demo/assets/demo.gif" alt="sshsentry replaying a sample auth log and printing alerts" width="720"></p>
+<p align="center"><sub>Real sshsentry output; the install lines in the recording are simulated.</sub></p>
 
-**Live demo:** <https://sshsentry.com>. The repo publishes `demo/` with a GitHub Actions workflow (`.github/workflows/pages.yml`); see `GITHUB_SETUP.md` for the Pages, custom-domain and DNS steps. It's one static file with no external scripts, so any static host works too.
+## Who it's for
 
-## What it alerts on
+If you run one or a few Linux servers with SSH open, someone is probably guessing passwords right now, and nobody is reading the logs. Most SSH monitoring tools are enterprise suites with agents, dashboards and hours of setup. sshsentry is for small businesses, indie developers and homelabs: one script, a local SQLite file, and alerts you can read.
+
+It is **not** a firewall and doesn't block anything. Pair it with fail2ban, a firewall and key-only SSH. It also doesn't see web-app attacks, and it isn't built for large fleets or compliance programs.
+
+## What it detects
 
 | Rule | Default | Severity |
 |---|---|---|
@@ -37,13 +31,62 @@ You'll see the alerts (two brute-force attacks, a login after failures, and new-
 | New user | A new account in `/etc/passwd` | HIGH |
 | New SSH key | A new line in any watched `authorized_keys` file | HIGH |
 
-All thresholds live in `sshsentry.yaml`. Repeat alerts are suppressed for `cooldown_minutes` (default 60).
+All thresholds live in `sshsentry.yaml`. Repeat alerts are suppressed for `cooldown_minutes` (default 60). More on each rule: [sshsentry.com/features.html](https://sshsentry.com/features.html).
 
-**First run is quiet:** existing users and keys become the baseline, and with `learn_existing_log: true` the existing auth log is read silently to learn which IPs each user normally uses. Use `--approve IP` to whitelist an address.
+## How it works
 
-**Brute-force threshold:** `rules.brute_force.failures` within `rules.brute_force.window_minutes` (default **5 failures from one IP within a sliding 10 minutes**). It's the same single threshold for stdout and every alert destination. Learn mode (below) can suggest a value; it never changes it on its own.
+1. **Install one script.** `pip install sshsentry`, or copy `sshsentry.py` to the server. Python 3.9+ and PyYAML.
+2. **It learns what's normal.** The first run is quiet: existing users and keys become the baseline, and the existing log teaches it which IPs each user normally uses (`learn_existing_log: true`). Use `--approve IP` to whitelist an address.
+3. **You get plain-English alerts** on stdout (journald under systemd), and optionally by email, Slack or webhook, plus an optional daily digest.
 
-## Install
+## Quick start: try it in 30 seconds
+
+No root needed, and nothing is sent anywhere in `--replay` mode. From a clone of this repo:
+
+```bash
+pip install pyyaml
+python3 sshsentry.py -c sshsentry.yaml --db /tmp/sshsentry-try.db --replay sample-auth.log --digest-now
+```
+
+Or with the PyPI package:
+
+```bash
+pip install sshsentry
+curl -sO https://raw.githubusercontent.com/sshsentry/sshsentry/main/sample-auth.log
+sshsentry --db /tmp/sshsentry-try.db --replay sample-auth.log --digest-now
+```
+
+### Sample output
+
+```
+[2026-10-17 02:10:31] MEDIUM: Brute force. 5 failed SSH logins from 203.0.113.45 in 30 sec, trying user(s): admin, oracle, root, test. Consider fail2ban, a firewall block, or disabling password logins.
+[2026-10-17 02:16:08] HIGH: Login after failures. User 'deploy' logged in via password from 192.0.2.77 after 6 failed attempts from that IP. If this wasn't you, change the password, check ~/.ssh/authorized_keys and review running processes.
+[2026-10-17 02:47:33] LOW: New IP login. User 'chris' logged in via publickey from 100.64.12.9, an address never seen for this user. If expected, approve it with: sshsentry.py --approve 100.64.12.9
+```
+
+(Three of the six alerts for the bundled sample log, followed by the digest.)
+
+**Even quicker: the demo page.** Open <https://sshsentry.com/try.html> (or `demo/try.html` locally) in any browser: no Python, no install, nothing uploaded. It shows the same 6 alerts and digest for the bundled log, and you can paste your own log or change thresholds. It's a JavaScript *port* of the detection rules, escalation and digest, for demo purposes; the Python script is the real tool. GeoIP, the passwd/authorized_keys checks and delivery aren't in the demo. After the CRITICAL alert, the walkthrough plays a **simulated responder** (`sshsentry --respond`): it asks before each step, runs read-only checks and ends with a verdict. Today sshsentry only detects and alerts. The responder is a planned feature, shown only as a simulation in the demo; it is **not yet in the Python tool** and is not included in this release. In the demo nothing runs on any real server. See the Disclaimer below before using --respond. Screenshots: `demo/screenshot.png`, `demo/responder.png` and `demo/calculator.png`.
+
+## How it fits with fail2ban
+
+fail2ban blocks IPs after repeated failures. sshsentry blocks nothing; it tells you what happened. fail2ban won't tell you that a login *succeeded* after failures, or that a new user or SSH key appeared. sshsentry will. Run both, with key-only SSH and a firewall. Details: [sshsentry.com/docs/fail2ban.html](https://sshsentry.com/docs/fail2ban.html).
+
+## FAQ
+
+**Does it change my server?** No. It reads the auth log, `/etc/passwd` and `authorized_keys`, and writes only its own SQLite state file (plus optional digest text files and alert log). It never touches firewall rules, accounts or keys.
+
+**Does anything leave my machine?** Only what you turn on: email/Slack/webhook alerts, digest delivery, or opt-in sharing of attacker IPs. All off by default.
+
+**Does it stop attacks?** No, it's detection only. Use fail2ban and a firewall for blocking.
+
+More: [FAQ](https://sshsentry.com/docs/faq.html) · [Troubleshooting](https://sshsentry.com/docs/troubleshooting.html) · [Configuration](https://sshsentry.com/docs/configuration.html) · [CLI reference](https://sshsentry.com/docs/cli.html)
+
+## Reference
+
+The full reference is below; the same material, organized as pages, is at [sshsentry.com/docs](https://sshsentry.com/docs/).
+
+### Install
 
 ```bash
 sudo mkdir -p /opt/sshsentry /etc/sshsentry /var/lib/sshsentry
@@ -54,7 +97,7 @@ sudo pip install pyyaml          # or: sudo apt install python3-yaml / sudo dnf 
 
 Python 3.9+ is required. On Debian/Ubuntu with "externally managed" Python, prefer the distro package `python3-yaml` (and `python3-geoip2`) or a venv.
 
-### Optional: country detection
+#### Optional: country detection
 
 1. Create a free MaxMind account: <https://www.maxmind.com/en/geolite2/signup>
 2. Download **GeoLite2-Country** (`.mmdb`), e.g. with `geoipupdate`, to `/usr/share/GeoIP/GeoLite2-Country.mmdb` (or set `geoip.database`).
@@ -62,7 +105,7 @@ Python 3.9+ is required. On Debian/Ubuntu with "externally managed" Python, pref
 
 If either the library or the database is missing, sshsentry prints a one-line note and simply skips country checks.
 
-## Run
+### Run
 
 ```bash
 sudo python3 /opt/sshsentry/sshsentry.py                 # tail-follow /var/log/auth.log or /var/log/secure
@@ -88,7 +131,7 @@ Run as root so it can read the auth log and every user's `authorized_keys`. Log 
 
 Systems logging only to journald (no auth.log/secure): install rsyslog, or export with `journalctl -u ssh -o short > file` and use `--replay`.
 
-## Alerting: email, Slack, webhook (off by default)
+### Alerting: email, Slack, webhook (off by default)
 
 Every alert always goes to stdout (journald under systemd). To also send alerts elsewhere, set `alerting.enabled: true` and enable one or more destinations. Each destination has its own `enabled` flag and an optional `min_severity` (`LOW` < `MEDIUM` < `HIGH` < `CRITICAL`).
 
@@ -111,7 +154,7 @@ alerting:
 
 **Testing:** `--replay` never sends anything. `sshsentry.py --test-alerts` sends one sample LOW alert to each enabled destination, ignoring `min_severity`, prints the result for each, and exits 1 if any fail.
 
-### Email
+#### Email
 
 The SMTP settings live in the `email:` block. For backward compatibility, an old config with `email.enabled: true` still sends email by itself. sshsentry uses `smtplib` with STARTTLS (port 587). Keep the password out of the YAML by putting it in the environment variable named by `email.password_env` (default `SSHSENTRY_SMTP_PASSWORD`):
 
@@ -122,7 +165,7 @@ echo 'SSHSENTRY_SMTP_PASSWORD=your-app-password' | sudo tee /etc/sshsentry/env >
 
 > **Tip:** Right after setup, add your sshsentry sender address (the `from` address in `sshsentry.yaml`) to your email contacts or safe-senders list so alerts don't land in spam or junk. Then run `--test-alerts` to confirm one arrives in your inbox.
 
-### Slack setup
+#### Slack setup
 
 1. Go to <https://api.slack.com/apps>, click **Create New App** → **From scratch**, name it (for example "sshsentry"), and pick your workspace.
 2. Under **Incoming Webhooks**, switch **Activate Incoming Webhooks** on, click **Add New Webhook to Workspace**, and choose the channel.
@@ -132,7 +175,7 @@ echo 'SSHSENTRY_SMTP_PASSWORD=your-app-password' | sudo tee /etc/sshsentry/env >
 
 Slack receives `{"text": "[sshsentry] MEDIUM: Brute force from ..."}`. Characters Slack treats as markup (`<`, `>`, `&`) are escaped, so an attacker-chosen username such as `<!channel>` can't ping your channel.
 
-### Generic webhook
+#### Generic webhook
 
 sshsentry sends an HTTPS `POST` with `Content-Type: application/json` and any `headers` you configure. The URL can come from `$SSHSENTRY_WEBHOOK_URL` (`url_env`). Example payload:
 
@@ -144,7 +187,7 @@ sshsentry sends an HTTPS `POST` with `Content-Type: application/json` and any `h
 
 `ip` is `null` and `success` is `null` for alerts with no source IP (new user or key). `timestamp` is the event time in UTC. Note that alerts sent to *your own* destinations can include usernames and IPs; that's different from opt-in sharing (below), which never sends usernames.
 
-## Daily digest (off by default)
+### Daily digest (off by default)
 
 ```yaml
 digest: {enabled: true, time: "08:00", send: true, destination: email, send_when_quiet: true}
@@ -184,7 +227,7 @@ DATE        FAILED   IPS  TOP OFFENDER              LOGINS  NEW IPS  CHAIN      
 
 **Scheduling:** in follow mode the time is checked about every `file_check_seconds` (default 60). With `--once` from a systemd timer or cron, the digest is generated on the first run at or after `time`. Each date is recorded once, so digests are never duplicated. On the day you enable digests, the first one comes at the *next* `time`.
 
-### Exporting digests (for records or an auditor)
+#### Exporting digests (for records or an auditor)
 
 ```bash
 sshsentry.py --export-digests 2026-10-01 2026-10-31 -o sshsentry-oct.zip [--host-label web-prod]
@@ -195,7 +238,7 @@ This writes a zip containing, for each stored day, both its text (`digests/YYYY-
 
 **What the hash does and doesn't prove:** it shows the zip hasn't changed *since it was exported*. It does **not** prove the digests are accurate, or that the database or log files weren't altered *before* export, by someone with root on the server for example. To make the hash useful, send it to the auditor separately from the zip (a different channel) or store it somewhere the server can't write to at export time.
 
-### Hash chain and verification
+#### Hash chain and verification
 
 Each stored digest gets `prev_hash` and `chain_hash = sha256(prev_hash + canonical digest)`. The canonical digest is the compact, sorted-key JSON of `date`, `period_start`, `period_end`, `stats` and `text` (the delivery status is excluded, so `--resend` doesn't change the chain). The first day's `prev_hash` is the genesis value `sha256("sshsentry-genesis-v1")`. That is a **fixed public constant**, not a per-install secret, so anyone can recompute a chain from an export with no access to the server. A secret salt wouldn't add tamper protection, because whoever can edit the database can also read the salt. Upgrading from an older version adds the columns and backfills the chain for existing digests once (a note is printed). The chain covers those days from then on; it can't vouch for anything changed before the upgrade.
 
@@ -211,7 +254,7 @@ sshsentry.py --verify-export oct.zip --expected-head 3f9a0c1d2b4e   # hash from 
 
 **Honest limits:** the chain is **tamper-evident, not tamper-proof**. Someone with root on the server can rewrite every digest *and* recompute the whole chain, and the result will verify on its own. What catches that is a chain hash that **already left the box**, such as the line in yesterday's emailed or Slack digest, an auditor's copy of an earlier export's head, or a hash you wrote down. If the head (or that day's hash) in the export doesn't match, the history was rewritten. So the protection is only as good as the copies stored off the server. Nothing proves the digests were accurate when they were created. Signing digests with a key kept off the server is possible future work; it's not implemented.
 
-## Learn mode: threshold suggestion (off by default)
+### Learn mode: threshold suggestion (off by default)
 
 ```yaml
 learn_mode: {enabled: true, days: 3, percentile: 99, margin: 2, min_threshold: 3, max_threshold: 50}
@@ -235,7 +278,7 @@ The suggestion is the chosen percentile of per-IP-per-window counts plus `margin
 
 **Caveat:** on an internet-facing server, the recorded failures are mostly real attackers, so a percentile-based number tends to be *higher* than 5. A higher threshold means fewer, later alerts. Treat the suggestion as information, not a target. `--replay FILE` with learn mode enabled prints a suggestion from that file, which is handy for experimenting. The old `learning.days` quiet period is deprecated and now maps onto learn mode.
 
-## Opt-in threat sharing (off by default)
+### Opt-in threat sharing (off by default)
 
 sshsentry can optionally report **attacking IPs** to a community blocklist endpoint. It is **off by default**; with `sharing.enabled: false` sshsentry never makes a network request for sharing, and behaves exactly as if the feature didn't exist.
 
@@ -274,7 +317,7 @@ Non-`https://` endpoints are refused at startup (sharing is disabled with a warn
 
 Local deletion always happens first and doesn't depend on the server. The old install ID is printed so you can ask for deletion by email if the request fails. Use `--forget-me --local-only` to skip the remote request. `--forget-me` doesn't turn sharing off; set `enabled: false` for that.
 
-## systemd service
+### systemd service
 
 `/etc/systemd/system/sshsentry.service`:
 
@@ -300,7 +343,7 @@ journalctl -u sshsentry -f          # alerts appear here (stdout)
 
 Prefer a timer? Use `ExecStart=... --once` with `Type=oneshot` and a `sshsentry.timer` with `OnCalendar=minutely`; the saved log offset means no line is processed twice.
 
-## Testing (dry run)
+### Testing (dry run)
 
 **Automated test suite:** `python3 tests/run_all.py` runs all the end-to-end tests (it needs PyYAML; add `--demo` to also check the demo page). See [`tests/README.md`](tests/README.md).
 
@@ -353,11 +396,17 @@ python3 sshsentry.py -c $T/test.yaml --db $T/s.db --replay $T/empty.log      # 2
 
 ## Community
 
-Discussions happen on GitHub Discussions: <https://github.com/sshsentry/sshsentry/discussions>
-- **Configs:** share your thresholds and learn-mode suggestions (form: `.github/DISCUSSION_TEMPLATE/share-config.yml`).
-- **Attack patterns:** describe what you saw and what helped (form: `.github/DISCUSSION_TEMPLATE/attack-pattern.yml`).
+Questions and show-and-tell live in [GitHub Discussions](https://github.com/sshsentry/sshsentry/discussions):
+- **[Configs](https://github.com/sshsentry/sshsentry/discussions/categories/configs):** share your `sshsentry.yaml` thresholds and learn-mode suggestions (form: `.github/DISCUSSION_TEMPLATE/configs.yml`).
+- **[Attack patterns](https://github.com/sshsentry/sshsentry/discussions/categories/attack-patterns):** post redacted log samples, what you saw and what helped (form: `.github/DISCUSSION_TEMPLATE/attack-patterns.yml`).
+
+Bugs and parser gaps: [open an issue](https://github.com/sshsentry/sshsentry/issues).
 
 **Privacy:** before you post, remove your server IPs, hostnames, usernames, email addresses, webhook URLs, passwords, and API tokens. Only share attacker IPs that are public and that you're comfortable publishing.
+
+## Contributing
+
+Contributions are welcome: parser fixes for log formats we miss, docs, and tests. Please run `python3 tests/run_all.py` (add `--demo` for the browser checks, which need google-chrome) before opening a pull request. The website pages are generated by `python3 site_src/build.py`; the live demo is `demo/try.html`.
 
 ## Contact
 
