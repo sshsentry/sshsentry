@@ -182,6 +182,10 @@ def home():
     page("/", "sshsentry: plain-English SSH intrusion alerts for small Linux servers",
          "A free, open source, single-script SSH intrusion detection tool for small businesses and homelabs. Detection only; pairs with fail2ban.", b, "index.html")
 
+LIVE_ALERTS = """[2026-10-25 21:03:14] MEDIUM: Brute force. 5 failed SSH logins from 127.0.0.1 in 15 sec, trying user(s): admin, oracle, root, simvictim, test. Consider fail2ban, a firewall block, or disabling password logins.
+[2026-10-25 21:03:46] CRITICAL: ESCALATION: successful login from 127.0.0.1 after brute force. User 'simvictim' logged in via password after 7 failed attempts from that IP (alerted at 2026-10-25 21:03:14; users tried: admin, oracle, root, simvictim, test). Treat this as a likely compromise: lock the account, check ~/.ssh/authorized_keys, review processes.
+[2026-10-25 21:03:46] LOW: New IP login. User 'simvictim' logged in via password from 127.0.0.1, an address never seen for this user (first recorded login). If expected, approve it with: sshsentry.py --approve 127.0.0.1"""
+
 def features():
     secs = ""
     for r, t, sv, ic, d, sample, cfg in RULES:
@@ -196,6 +200,7 @@ def features():
 <tr><td><span class="sev s-CRITICAL">CRITICAL</span></td><td>An attacker may be in</td><td>Escalation (alerting on)</td></tr></table></div>
 <p class="muted">Each destination can filter with <code>min_severity</code>.</p></div></section>
 {secs}
+<section class="block" id="live-test"><div class="wrap"><span class="label">verified</span><h2>Tested against a live attack</h2><p class="lead">On 2026-10-25 we ran sshsentry in live follow mode (not replay) against a throwaway OpenSSH 10 server, sprayed passwords for <code>admin</code>, <code>root</code>, <code>oracle</code> and <code>test</code>, sent wrong passwords for a temporary user, then logged in once. sshsentry raised these three alerts and a local webhook received all three as JSON. (HIGH "login after failures" is replaced by the CRITICAL escalation when alerting is on, by design.) Detection only: nothing was blocked.</p>{term("sshsentry (live follow)", LIVE_ALERTS)}<p style="margin-top:14px"><a href="https://github.com/sshsentry/sshsentry/blob/main/docs/live-test/RESULTS.md">Full results and evidence &rarr;</a></p></div></section>
 <section class="block"><div class="wrap two"><div><span class="label">daily digest</span><h2>One short screen a day</h2><p class="muted">Optional (<code>digest.enabled</code>). Summarizes the last 24 hours, stores it locally, and can send it to one destination. Each day carries a hash chain line so a rewritten history can be spotted later: tamper-evident, not tamper-proof.</p></div>{term("digest-2026-10-17.txt", DIGEST, "plain")}</div></section>
 <section class="block"><div class="wrap two"><div><span class="label">privacy</span><h2>Local by default</h2><p class="muted">State lives in a local SQLite file. Alerts go to stdout unless you enable email, Slack or a webhook (each off by default). Community sharing of attacker IPs is opt-in, sends no usernames or log lines, and can be reviewed with <code>--show-shared</code> and erased with <code>--forget-me</code>. See the <a href="/privacy.html">privacy policy</a>.</p></div>
 <div><span class="label">detection only</span><h2>It watches. It does not block.</h2><p class="muted">sshsentry never changes firewall rules, accounts or keys. Use fail2ban, a firewall and key-only SSH for prevention. A responder that helps you act on an incident is planned and shown only as a simulation in the <a href="/try.html">live demo</a>; it is not in this release.</p></div></div></section>

@@ -66,6 +66,16 @@ sshsentry --db /tmp/sshsentry-try.db --replay sample-auth.log --digest-now
 
 (Three of the six alerts for the bundled sample log, followed by the digest.)
 
+### Tested against a live attack
+
+On 2026-10-25 we pointed sshsentry (live follow mode, not `--replay`) at a throwaway OpenSSH 10 server and hit it with real password spraying (`admin`, `root`, `oracle`, `test`) plus wrong passwords for a temporary user, then one successful login. sshsentry raised these three alerts, and a local webhook received all three as JSON. The HIGH "login after failures" alert is replaced by the CRITICAL escalation when alerting is on, by design. sshsentry only detected and alerted; it does not block anything. Evidence: [docs/live-test/RESULTS.md](docs/live-test/RESULTS.md).
+
+```
+[2026-10-25 21:03:14] MEDIUM: Brute force. 5 failed SSH logins from 127.0.0.1 in 15 sec, trying user(s): admin, oracle, root, simvictim, test. Consider fail2ban, a firewall block, or disabling password logins.
+[2026-10-25 21:03:46] CRITICAL: ESCALATION: successful login from 127.0.0.1 after brute force. User 'simvictim' logged in via password after 7 failed attempts from that IP (alerted at 2026-10-25 21:03:14; users tried: admin, oracle, root, simvictim, test). Treat this as a likely compromise: lock the account, check ~/.ssh/authorized_keys, review processes.
+[2026-10-25 21:03:46] LOW: New IP login. User 'simvictim' logged in via password from 127.0.0.1, an address never seen for this user (first recorded login). If expected, approve it with: sshsentry.py --approve 127.0.0.1
+```
+
 **Even quicker: the demo page.** Open <https://sshsentry.com/try.html> (or `demo/try.html` locally) in any browser: no Python, no install, nothing uploaded. It shows the same 6 alerts and digest for the bundled log, and you can paste your own log or change thresholds. It's a JavaScript *port* of the detection rules, escalation and digest, for demo purposes; the Python script is the real tool. GeoIP, the passwd/authorized_keys checks and delivery aren't in the demo. After the CRITICAL alert, the walkthrough plays a **simulated responder** (`sshsentry --respond`): it asks before each step, runs read-only checks and ends with a verdict. Today sshsentry only detects and alerts. The responder is a planned feature, shown only as a simulation in the demo; it is **not yet in the Python tool** and is not included in this release. In the demo nothing runs on any real server. See the Disclaimer below before using --respond. Screenshots: `demo/screenshot.png`, `demo/responder.png` and `demo/calculator.png`.
 
 ## How it fits with fail2ban
