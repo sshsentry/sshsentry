@@ -1,0 +1,11 @@
+# Optional: pair with an external monitor instead when possible. A heartbeat checked on the
+# same host cannot report a dead host. This timer only restarts the service if it is inactive.
+[Unit]
+Description=Ensure SSH Sentry Commercial Edition is running
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

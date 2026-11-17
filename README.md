@@ -404,6 +404,11 @@ echo 'ssh-rsa AAAAexample evil@attacker' >> $T/home/alice/.ssh/authorized_keys
 python3 sshsentry.py -c $T/test.yaml --db $T/s.db --replay $T/empty.log      # 2 HIGH alerts
 ```
 
+## Editions
+
+- **Base edition (this README, `sshsentry.py` 0.2.0, `pip install sshsentry`):** for small businesses, indie developers and homelabs. Free and MIT-licensed. Unchanged.
+- **[SSH Sentry Commercial Edition](editions/commercial/README.md) (experimental, in `editions/commercial/`):** an expanded edition for larger institutions and critical-infrastructure operators. It adds distributed-spray and unusual-hours rules, log-tamper and downtime detection, a heartbeat, a retry queue for failed alerts, one alert per spray, and a `connection_flood` rule for sources that flood SSH with connections but never try to log in. It is a separate program, not on PyPI, and its commercial terms aren't set yet.
+
 ## Community
 
 Questions and show-and-tell live in [GitHub Discussions](https://github.com/sshsentry/sshsentry/discussions):

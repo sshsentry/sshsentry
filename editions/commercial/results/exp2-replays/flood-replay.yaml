@@ -1,0 +1,12 @@
+log_file: /tmp/sshsentry2-none.log
+state_db: /tmp/sshsentry2-exp2-flood-replay.db
+learn_existing_log: false
+rules:
+  new_user: {enabled: false}
+  new_ssh_key: {enabled: false}
+  new_country: {enabled: false}
+  connection_flood:
+    labels:
+      192.0.2.41: "El Dorado, AR radio-site router (simulated)"
+      192.0.2.87: "Amarillo, TX radar-site router (simulated)"
+      198.51.100.0/24: "Ops admin network (simulated)"

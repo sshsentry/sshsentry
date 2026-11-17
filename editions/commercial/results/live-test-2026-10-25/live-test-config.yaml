@@ -1,0 +1,31 @@
+# sshsentry2 live test (localhost only). Paths under <test-dir>
+log_file: <test-dir>/logs/auth-sim.log
+state_db: <test-dir>/state/state.db
+poll_seconds: 1
+file_check_seconds: 300
+cooldown_minutes: 1
+alert_log: <test-dir>/captures/alert_log.jsonl
+learn_existing_log: true      # used to seed the login-hour baseline from synthetic past lines
+rules:
+  brute_force: {enabled: true, failures: 5, window_minutes: 10}
+  login_after_failures: {enabled: true, failures: 5, lookback_minutes: 60}
+  new_ip: {enabled: true}
+  new_country: {enabled: false}
+  new_user: {enabled: false}
+  new_ssh_key: {enabled: false}
+  distributed_spray: {enabled: true, window_minutes: 10, failures: 20, distinct_ips: 10, per_user_ips: 5}
+  unusual_hours: {enabled: true, min_samples: 10, tolerance_hours: 1}
+tamper: {enabled: true, missing_seconds: 5, rotation_notice: alert, rotation_severity: LOW}
+heartbeat: {enabled: true, interval_seconds: 15, url: "http://127.0.0.1:8765/heartbeat"}
+retry: {enabled: true, max_age_hours: 24, base_seconds: 5, max_backoff_seconds: 20}
+downtime_alert: {enabled: true}
+learn_mode: {enabled: false}
+alerting:
+  enabled: true
+  timeout: 5
+  email: {enabled: false}
+  slack: {enabled: false}
+  webhook: {enabled: true, min_severity: LOW, url: "http://127.0.0.1:8765/sshsentry", headers: {}}
+digest: {enabled: false, send: false}
+sharing: {enabled: false}
+email: {enabled: false}

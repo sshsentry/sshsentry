@@ -1,0 +1,6 @@
+[Unit]
+Description=Start SSH Sentry Commercial Edition if it is not running
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl start sshsentry-commercial.service

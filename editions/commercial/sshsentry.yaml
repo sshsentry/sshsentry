@@ -1,0 +1,219 @@
+# sshsentry sample config. Copy to /etc/sshsentry/sshsentry.yaml and adjust.
+# Anything you leave out falls back to the built-in defaults in sshsentry.py.
+
+# Auth log to watch. "auto" picks /var/log/auth.log (Debian/Ubuntu) or /var/log/secure (RHEL/Fedora).
+log_file: auto
+
+# SQLite file holding baselines, seen IPs/countries, recent failures and alert cool-downs.
+state_db: /var/lib/sshsentry/state.db
+
+poll_seconds: 1           # tail-follow polling interval
+file_check_seconds: 60    # how often to re-check /etc/passwd and authorized_keys
+cooldown_minutes: 60      # don't repeat the same alert (same rule + IP/user) within this time
+alert_log: ""             # optional JSON-lines alert file, e.g. /var/log/sshsentry/alerts.log
+
+rules:
+  brute_force:            # many failed logins (incl. invalid usernames) from one IP
+    enabled: true
+    # THE brute-force threshold, per source IP: alert when one IP has at least `failures`
+    # failed logins within the last `window_minutes` (sliding window). Default: 5 in 10 min.
+    # The same threshold triggers stdout and every alerting destination (one message per IP
+    # per cooldown_minutes). learn_mode can suggest a value; --accept-threshold edits this line.
+    failures: 5
+    window_minutes: 10
+  login_after_failures:   # a successful login from an IP that recently failed N times
+    enabled: true
+    failures: 5
+    lookback_minutes: 60
+  new_ip:                 # successful login from an IP never seen for that user
+    enabled: true
+  new_country:            # needs geoip2 + GeoLite2-Country.mmdb; silently skipped if missing
+    enabled: true
+  new_user:               # new account in passwd (first run records a silent baseline)
+    enabled: true
+    passwd_file: /etc/passwd
+  new_ssh_key:            # new line in any authorized_keys file (globs allowed; silent baseline first)
+    enabled: true
+    paths:
+      - /root/.ssh/authorized_keys
+      - /home/*/.ssh/authorized_keys
+  # --- Commercial Edition rules ---
+  distributed_spray:      # many IPs, few failures each (slips under brute_force). HIGH.
+    enabled: true
+    window_minutes: 10    # sliding window
+    failures: 20          # total failed logins in the window ...
+    distinct_ips: 10      # ... from at least this many different IPs
+    per_user_ips: 5       # also: ONE username failing from this many IPs in the window
+    merge_user_alerts: true   # exp2: while the window alert for a spray is active, per-username
+                              # alerts are folded into it (one spray = one alert, listing the
+                              # targeted usernames). false = separate per-username alerts (exp1).
+  unusual_hours:          # login at an hour this user never logs in (server local time). MEDIUM.
+    enabled: true
+    min_samples: 10       # stays silent until the user has this many recorded logins
+    tolerance_hours: 1    # an hour within +/-1 of any previously used hour counts as usual
+  connection_flood:       # exp2: reconnect flood. HIGH, names the source IP.
+    # One source IP opens many SSH connections that end before any login attempt (a device or
+    # script stuck in a connect/drop loop, or a scanner). Login-based rules never see it, because
+    # no username or password is ever sent. Counted from sshd's pre-auth lines: "Connection from"
+    # (LogLevel VERBOSE), "Connection closed/reset by IP port P [preauth]", "Did not receive
+    # identification string", "Timeout before authentication", "drop connection ... past
+    # MaxStartups" and similar. Several lines of one connection count once.
+    # An IP with any login attempt in the window (Failed / Invalid user / Accepted /
+    # "authenticating user" ...) is left to the login rules instead.
+    enabled: true
+    connections: 100      # alert when one IP makes this many connections ...
+    window_seconds: 10    # ... within this sliding window, with 0 login attempts from it
+    cooldown_minutes: 5   # per source IP (separate from the global cooldown_minutes)
+    labels: {}            # optional inventory names shown next to the IP in the alert, e.g.
+    #   "10.20.0.41": "El Dorado radio-site router"
+    #   "10.20.8.0/24": "Amarillo site network"   (CIDR allowed; most specific match wins)
+    ignore: []            # IPs / CIDRs never flagged, e.g. a load balancer's TCP health checks
+
+# On the very first run, read the existing auth log silently to learn which IPs each user
+# normally logs in from, then alert only on new activity.
+# (Older configs had this as learning.learn_existing_log; that still works.)
+learn_existing_log: true
+
+# Commercial Edition: log tamper / rotation checks (local only; nothing extra is sent).
+tamper:
+  enabled: true
+  missing_seconds: 30     # HIGH if the log file is missing for longer than this
+  rotation_notice: log    # normal logrotate (old file renamed to auth.log.1 etc.):
+                          #   log = note on stderr, alert = rotation_severity alert, off = nothing
+  rotation_severity: LOW
+  rotated_patterns: [".1", ".0", "-*", ".*"]   # where a rotated copy may appear next to the log
+                          # Truncation in place, deletion, or replacement is always HIGH.
+                          # (logrotate copytruncate looks like truncation: prefer create mode.)
+
+# Commercial Edition: dead-man's switch. OFF by default because it sends data. Every interval_seconds
+# it POSTs {"type": "heartbeat", ...} so the receiver (e.g. healthchecks.io) can alert when
+# pings stop (kill -9, crash, host down). Also see systemd/sshsentry-commercial.service (watchdog).
+heartbeat:
+  enabled: false
+  interval_seconds: 300
+  url: ""                 # https:// (http:// only for localhost); or set $SSHSENTRY_HEARTBEAT_URL
+  url_env: SSHSENTRY_HEARTBEAT_URL
+  use_webhook: false      # true = reuse alerting.webhook's URL instead
+  timeout: 5
+
+# Commercial Edition: failed alert sends are queued in the state DB and retried with backoff
+# (base_seconds, doubling, capped at max_backoff_seconds) until max_age_hours.
+# Only re-sends to destinations you already enabled under alerting.
+retry:
+  enabled: true
+  max_age_hours: 24
+  base_seconds: 30
+  max_backoff_seconds: 1800
+
+# Commercial Edition: MEDIUM alert on the next start after an unclean stop (kill -9, crash),
+# saying how long sshsentry was down and how many log lines it caught up.
+downtime_alert:
+  enabled: true
+
+learn_mode:
+  # OPT-IN threshold learning. While active (for `days` after you first enable it):
+  #  - alerts still print to stdout, marked "[learning: not sent]", but are NOT sent to
+  #    email/Slack/webhook and NOT shared;
+  #  - failed logins per IP per brute-force window are recorded in the state DB;
+  #  - when the period ends, a suggested threshold is printed once, and alerts resume using
+  #    your MANUAL rules.brute_force.failures (the suggestion is never applied automatically).
+  # Suggestion = the `percentile` of per-IP-per-window failure counts + `margin`,
+  # clamped to [min_threshold, max_threshold].
+  # Commands: --suggest-threshold (print anytime), --accept-threshold (write it into this file).
+  # This replaces the old learning.days quiet period (still accepted, mapped onto learn_mode).
+  enabled: false
+  days: 3
+  percentile: 99
+  margin: 2
+  min_threshold: 3
+  max_threshold: 50
+
+geoip:
+  # Free download after signing up at https://www.maxmind.com/en/geolite2/signup
+  database: /usr/share/GeoIP/GeoLite2-Country.mmdb
+
+alerting:
+  # Alert destinations. stdout/journald always gets every alert; this adds more.
+  # Off by default. Each destination also needs its own enabled: true.
+  # Broken destinations (bad URL, missing credentials) are disabled at startup with a
+  # warning; send failures are logged to stderr and never stop monitoring.
+  # Severities: LOW < MEDIUM < HIGH < CRITICAL. Brute force = MEDIUM, login after failures =
+  # HIGH, and a later SUCCESSFUL login from an IP already alerted for brute force = CRITICAL
+  # (sent once per brute-force alert, to every destination).
+  # Try it: sshsentry.py --test-alerts      (--replay never sends anything)
+  enabled: false
+  timeout: 5              # seconds per send (HTTP and SMTP)
+  email:
+    enabled: false        # SMTP settings come from the `email:` block below
+    min_severity: LOW
+  slack:
+    enabled: false
+    min_severity: MEDIUM
+    # Incoming-webhook URL. Prefer the env var (it is a secret); the env var wins if set.
+    webhook_url_env: SSHSENTRY_SLACK_WEBHOOK
+    webhook_url: ""       # https://hooks.slack.com/services/...
+  webhook:
+    enabled: false        # generic JSON POST: severity, rule, ip, usernames, success, timestamp, message
+    min_severity: LOW
+    url_env: SSHSENTRY_WEBHOOK_URL
+    url: ""               # must be https:// (http:// only for localhost)
+    headers: {}           # e.g. {Authorization: "Bearer ..."}
+
+digest:
+  # OPT-IN daily digest. When enabled, every day at `time` (server local time, HH:MM)
+  # sshsentry builds a plain-language summary of the previous 24 h and ALWAYS stores it
+  # locally: SQLite table daily_digests (date, stats JSON, text, delivery status/error) and,
+  # if save_text is on, a text copy in text_dir/YYYY-MM-DD.txt.
+  # Missed days (machine off) are caught up on the next run, up to 7 days; only the newest is sent.
+  # Content: failed logins and distinct IPs, the most active IP with its attempts and the
+  # usernames it tried, successful logins (flagging any that came after failures), new IPs,
+  # and the learn-mode suggestion if any. Never raw log lines, and no hostname unless you set
+  # host_label. Quiet days say "No incidents today."
+  # Delivery is separate: `send` (true/false) to ONE destination (email | slack | webhook),
+  # which reuses that destination's settings from the alerting block. The destination's own
+  # enabled flag and alerting.enabled are NOT required. Turning send off keeps recording; turning
+  # it back on delivers new days only (no backfill). Use --resend DATE to send an old day.
+  # Works in follow mode (checked about every file_check_seconds) and with --once from a timer.
+  # A failed send is logged and stored with its error; it never stops monitoring.
+  # View: --digests [N] (table of the last N days), --digest YYYY-MM-DD (one day in full).
+  # Export: --export-digests START END [-o PATH]   (zip + manifest + SHA-256 sidecar)
+  enabled: false
+  time: "08:00"
+  send: true
+  destination: email
+  send_when_quiet: true   # also send the one-line "No incidents today." digest
+  save_text: true
+  text_dir: ""            # "" = "digests" folder next to state_db (/var/lib/sshsentry/digests)
+  host_label: ""          # optional label shown in the digest header, e.g. "web-prod"
+  include_chain_hash: true  # end delivered digests with "Integrity chain: <short> (sha256 <full>)".
+                            # Each day's hash chains to the previous day; keep the emailed copies:
+                            # `--verify-export ZIP --expected-head HASH` proves an export matches them.
+                            # Text copies and exports always include it.
+
+email:
+  # SMTP settings used by alerting.email. For backward compatibility, setting enabled: true
+  # here (the old way) also turns email alerts on by itself.
+  enabled: false
+  smtp_host: smtp.example.com
+  smtp_port: 587
+  starttls: true
+  username: alerts@example.com
+  # Put the password in an environment variable (e.g. via systemd EnvironmentFile),
+  # not in this file. A plain "password:" key also works but is discouraged.
+  password_env: SSHSENTRY_SMTP_PASSWORD
+  from: alerts@example.com
+  to:
+    - you@example.com
+  subject_prefix: "[sshsentry]"
+
+sharing:
+  # OPT-IN community threat sharing. Off by default; when off, nothing is ever sent.
+  # When on, ONLY brute_force and login_after_failures alerts are reported, and each
+  # report contains only: attacking IP, rule name, timestamp (rounded down to the minute,
+  # UTC), sshsentry version, and a random install ID generated on this machine.
+  # Never sent: usernames, log lines, hostname, your server's IP, keys, config.
+  # Private/local attacker IPs, approved IPs, and --replay runs are never shared.
+  # Review with: sshsentry.py --show-shared     Delete history: sshsentry.py --forget-me
+  enabled: false
+  endpoint: ""            # must be https://  (http:// accepted only for localhost testing)
+  timeout: 5              # seconds; failures are recorded locally and never stop monitoring
