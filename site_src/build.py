@@ -19,7 +19,7 @@ ICONS = {
 }
 FAVICON = "data:image/svg+xml," + re.sub(r"\s+", " ", '''<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%2309090b'/><path d='M12 4l7 2.6v5.2c0 3.9-3 7.2-7 7.8-4-.6-7-3.9-7-7.8V6.6L12 4z' fill='none' stroke='%232dd4bf' stroke-width='1.8'/><path d='M9 12l2 2 4-4' fill='none' stroke='%232dd4bf' stroke-width='1.8'/></svg>''')
 
-NAV = [("/features.html", "Features"), ("/docs/", "Docs"), ("/try.html", "Try it live"), ("/reconnect-flood.html", "Reconnect flood"), (DISC + "configs", "Community")]
+NAV = [("/features.html", "Features"), ("/docs/", "Docs"), ("/try.html", "Try it live"), (DISC + "configs", "Community")]
 DOCS = [("/docs/", "Getting started"), ("/docs/configuration.html", "Configuration"), ("/docs/cli.html", "CLI reference"),
         ("/docs/replay.html", "Replaying logs"), ("/docs/fail2ban.html", "With fail2ban"), ("/docs/faq.html", "FAQ"),
         ("/docs/troubleshooting.html", "Troubleshooting")]
@@ -402,78 +402,8 @@ def notfound():
 <p class="lead">Checksum mismatch: the path you asked for isn't on this site.</p>{term("sshsentry", "$ sshsentry --verify-path\nFAIL  path not found\n      try / or /docs/", "plain", ln=False)}
 <div class="cta"><a class="btn primary" href="/">Home</a><a class="btn" href="/docs/">Docs</a><a class="btn" href="/try.html">Live demo</a></div></div></section>''', "404.html")
 
-FLOOD_SHOTS = [("01_flood_start", "The flood starts: the El Dorado placeholder source opens and drops SSH connections before any login, at about 1,000 every 4 seconds."),
- ("02_alert_el_dorado", "Attempt #100, 0.40 s in: the proposed connection_flood rule fires HIGH and names 192.0.2.41, El Dorado, AR radio-site router (simulated). The current rules stay silent."),
- ("03_alert_amarillo", "The Amarillo placeholder source, 192.0.2.87, trips the same rule at attempt #100, 0.49 s in, with its own address and label."),
- ("04_summary", "Summary: 0 alerts from the released login-based rules, 2 alerts from the proposed rule, each with the source address named.")]
-
-def md_article(src):
-    """Markdown subset for the reconnect-flood article: headings, paragraphs, lists, links, fenced code."""
-    out, para, lst, code, fence = [], [], None, [], False
-    def inl(s):
-        s = E(s, quote=False)
-        s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
-        s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
-        s = re.sub(r"(?<![\w*])\*([^*\n]+)\*(?![\w*])", r"<em>\1</em>", s)
-        s = re.sub(r"(?<![\w])_([^_\n]+)_(?![\w])", r"<em>\1</em>", s)
-        s = s.replace("[DEMO VIDEO LINK]", '<a href="#video">watch the demo video</a>')
-        s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>', s)
-        return s
-    def flush():
-        nonlocal lst
-        if para: out.append("<p>" + inl(" ".join(para)) + "</p>"); para.clear()
-        if lst: out.append(f"</{lst}>"); lst = None
-    src = re.sub(r"<!--.*?-->", "", src, flags=re.S)
-    for line in src.splitlines():
-        if line.strip().startswith("```"):
-            if fence: out.append(term("connection_flood.alert (simulated)", "\n".join(code), "alerts", ln=False)); code = []; fence = False
-            else: flush(); fence = True
-            continue
-        if fence: code.append(line); continue
-        m = re.match(r"^(#{1,4}) (.*)", line)
-        if m:
-            flush(); n = len(m.group(1))
-            if n == 1: continue  # title is rendered in the page hero
-            out.append(f"<h{n}>{inl(m.group(2))}</h{n}>"); continue
-        m = re.match(r"^\s*(?:([-*])|(\d+)\.) (.*)", line)
-        if m:
-            if para: out.append("<p>" + inl(" ".join(para)) + "</p>"); para.clear()
-            kind = "ul" if m.group(1) else "ol"
-            if lst != kind:
-                if lst: out.append(f"</{lst}>")
-                out.append(f"<{kind}>"); lst = kind
-            out.append("<li>" + inl(m.group(3)) + "</li>"); continue
-        if line.startswith(">"): line = line.lstrip("> ")
-        if not line.strip() or line.strip() in ("---", "***"): flush(); continue
-        if lst and line.startswith("  "): out[-1] = out[-1][:-5] + " " + inl(line.strip()) + "</li>"; continue
-        para.append(line.strip())
-    flush(); return "\n".join(out)
-
-def reconnect_flood():
-    src = open(os.path.join(ROOT, "site_src", "reconnect-flood.md"), encoding="utf-8").read()
-    m = re.search(r"^# (.+)$", src, re.M); title = m.group(1).strip() if m else "Catching a reconnect flood that never logs in"
-    art = md_article(src)
-    A = "/assets/reconnect-flood/"
-    shots = "".join(f'<figure class="shot"><a href="{A}{n}.png"><img src="{A}{n}.png" alt="{E(c)}" width="1024" height="576" loading="lazy"></a><figcaption>{E(c)}</figcaption></figure>' for n, c in FLOOD_SHOTS)
-    b = f'''<section class="hero" style="padding-bottom:28px"><div class="wrap"><span class="label">demo &middot; proposed rule</span>
-<div class="badges"><span class="badge"><span class="dot"></span>simulation</span><span class="badge">proposed rule: connection_flood</span><span class="badge">not in v0.2.0</span><span class="badge">placeholder addresses</span></div>
-<h1>{E(title)}</h1>
-<p class="lead">The FAA reported about 1,000 connection attempts every 4 to 5 seconds on November 13. sshsentry 0.2.0 only counts logins, so a flood that never logs in stays invisible. This demo shows a proposed rule that catches the pattern in under half a second and names the source address.</p>
-<div class="cta"><a class="btn primary" href="#video">Watch the demo video</a><a class="btn" href="/reconnect-flood-demo.html">Run the interactive demo</a><a class="btn" href="#article">Read the write-up</a></div></div></section>
-<section class="block" id="video" style="padding-top:28px"><div class="wrap"><span class="label">00 watch</span><h2>The demo, 77 seconds</h2>
-<div class="heroimg vidbox"><video controls preload="metadata" playsinline width="1280" height="720" poster="{A}02_alert_el_dorado.png"><source src="{A}flood_demo.mp4" type="video/mp4">Your browser can't play this video. <a href="{A}flood_demo.mp4">Download the MP4</a>.</video></div>
-<div class="callout"><strong>Simulation, not a recording of November 13.</strong> Both routers are shown with RFC 5737 documentation placeholders (192.0.2.41 for El Dorado, 192.0.2.87 for Amarillo) because the real addresses are not public. Alert times come from the simulation. <code>connection_flood</code> is a proposed rule: it is not in the released 0.2.0 or in the <a href="/try.html">live demo</a>. The real event was router and network traffic, not SSH logins.</div>
-<p class="dim" style="font-size:13px"><a href="{A}flood_demo.mp4">Download the MP4</a> (1280&times;720, H.264) &middot; <a href="/reconnect-flood-demo.html">Interactive version</a> (runs in your browser, no network requests)</p></div></section>
-<div class="wrap" id="article" style="padding:24px 24px 40px"><article class="doc" style="margin:0 auto"><span class="label">write-up</span>{art}</article></div>
-<section class="block" id="screenshots"><div class="wrap"><span class="label">01 stills</span><h2>Frame by frame</h2><div class="shots">{shots}</div>
-<p class="dim" style="font-size:13px;margin-top:18px">All frames are from the simulation, with placeholder addresses.</p></div></section>'''
-    page("/reconnect-flood.html", f"{title} | sshsentry", "Demo and write-up: a proposed sshsentry rule that flags a reconnect flood that never logs in, like the pattern the FAA reported on Nov 13, 2026. Simulation with placeholder addresses.", b, "reconnect-flood.html")
-    d = os.path.join(OUT, "assets", "reconnect-flood"); os.makedirs(d, exist_ok=True)
-    for n in ["flood_demo.mp4"] + [f"{n}.png" for n, _ in FLOOD_SHOTS]:
-        if not os.path.exists(os.path.join(d, n)): raise SystemExit(f"missing demo asset: demo/assets/reconnect-flood/{n}")
-
 def sitemap():
-    urls = ["/", "/features.html", "/try.html", "/reconnect-flood.html", "/privacy.html"] + [h for h, _ in DOCS]
+    urls = ["/", "/features.html", "/try.html", "/privacy.html"] + [h for h, _ in DOCS]
     open(os.path.join(OUT, "sitemap.xml"), "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + "".join(f"  <url><loc>{SITE}{u}</loc></url>\n" for u in urls) + "</urlset>\n")
     open(os.path.join(OUT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n")
@@ -481,4 +411,4 @@ def sitemap():
 if __name__ == "__main__":
     os.makedirs(os.path.join(OUT, "assets"), exist_ok=True)
     shutil.copy(os.path.join(ROOT, "site_src", "site.css"), os.path.join(OUT, "assets", "site.css"))
-    home(); features(); docs(); privacy(); notfound(); reconnect_flood(); sitemap(); print("built", OUT)
+    home(); features(); docs(); privacy(); notfound(); sitemap(); print("built", OUT)
