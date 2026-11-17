@@ -403,9 +403,9 @@ def notfound():
 <div class="cta"><a class="btn primary" href="/">Home</a><a class="btn" href="/docs/">Docs</a><a class="btn" href="/try.html">Live demo</a></div></div></section>''', "404.html")
 
 FLOOD_SHOTS = [("01_flood_start", "The flood starts: the El Dorado placeholder source opens and drops SSH connections before any login, at about 1,000 every 4 seconds."),
- ("02_alert_el_dorado", "Attempt #100, 0.40 s in: the proposed connection_flood rule fires HIGH and names 192.0.2.41, El Dorado, AR radio-site router (simulated). The current rules stay silent."),
+ ("02_alert_el_dorado", "Attempt #100, 0.40 s in: the connection_flood rule fires HIGH and names 192.0.2.41, El Dorado, AR radio-site router (simulated). The current rules stay silent."),
  ("03_alert_amarillo", "The Amarillo placeholder source, 192.0.2.87, trips the same rule at attempt #100, 0.49 s in, with its own address and label."),
- ("04_summary", "Summary: 0 alerts from the released login-based rules, 2 alerts from the proposed rule, each with the source address named.")]
+ ("04_summary", "Summary: 0 alerts from the released login-based rules, 2 alerts from connection_flood, each with the source address named.")]
 
 def md_article(src):
     """Markdown subset for the reconnect-flood article: headings, paragraphs, lists, links, fenced code."""
@@ -451,23 +451,23 @@ def md_article(src):
 
 def reconnect_flood():
     src = open(os.path.join(ROOT, "site_src", "reconnect-flood.md"), encoding="utf-8").read()
-    m = re.search(r"^# (.+)$", src, re.M); title = m.group(1).strip() if m else "Catching a reconnect flood that never logs in"
+    m = re.search(r"^# (.+)$", src, re.M); title = m.group(1).strip() if m else "A reconnect flood that never logs in is still a flood"
     art = md_article(src)
     A = "/assets/reconnect-flood/"
     shots = "".join(f'<figure class="shot"><a href="{A}{n}.png"><img src="{A}{n}.png" alt="{E(c)}" width="1024" height="576" loading="lazy"></a><figcaption>{E(c)}</figcaption></figure>' for n, c in FLOOD_SHOTS)
-    b = f'''<section class="hero" style="padding-bottom:28px"><div class="wrap"><span class="label">demo &middot; proposed rule</span>
-<div class="badges"><span class="badge"><span class="dot"></span>simulation</span><span class="badge">proposed rule: connection_flood</span><span class="badge">not in v0.2.0</span><span class="badge">placeholder addresses</span></div>
+    b = f'''<section class="hero" style="padding-bottom:28px"><div class="wrap"><span class="label">demo &middot; sshsentry 2 Commercial Edition</span>
+<div class="badges"><span class="badge"><span class="dot"></span>simulation</span><span class="badge">rule: connection_flood</span><span class="badge">sshsentry 2 Commercial Edition</span><span class="badge">not in v0.2.0</span><span class="badge">placeholder addresses</span></div>
 <h1>{E(title)}</h1>
-<p class="lead">The FAA reported about 1,000 connection attempts every 4 to 5 seconds on November 13. sshsentry 0.2.0 only counts logins, so a flood that never logs in stays invisible. This demo shows a proposed rule that catches the pattern in under half a second and names the source address.</p>
-<div class="cta"><a class="btn primary" href="#video">Watch the demo video</a><a class="btn" href="/reconnect-flood-demo.html">Run the interactive demo</a><a class="btn" href="#article">Read the write-up</a></div></div></section>
+<p class="lead">The FAA reported about 1,000 connection attempts every 4 to 5 seconds on November 13. sshsentry 0.2.0 only counts logins, so a flood that never logs in stays invisible. sshsentry 2, the <a href="https://github.com/sshsentry/sshsentry/tree/main/editions/commercial">Commercial Edition</a>, has a built-in rule that catches the pattern in under half a second and names the source address.</p>
+<div class="cta"><a class="btn primary" href="#video">Watch the demo video</a><a class="btn" href="/reconnect-flood-demo.html">Run the interactive demo</a><a class="btn" href="#article">Read the write-up</a><a class="btn" href="https://github.com/sshsentry/sshsentry/tree/main/editions/commercial">Commercial Edition on GitHub</a></div></div></section>
 <section class="block" id="video" style="padding-top:28px"><div class="wrap"><span class="label">00 watch</span><h2>The demo, 77 seconds</h2>
 <div class="heroimg vidbox"><video controls preload="metadata" playsinline width="1280" height="720" poster="{A}02_alert_el_dorado.png"><source src="{A}flood_demo.mp4" type="video/mp4">Your browser can't play this video. <a href="{A}flood_demo.mp4">Download the MP4</a>.</video></div>
-<div class="callout"><strong>Simulation, not a recording of November 13.</strong> Both routers are shown with RFC 5737 documentation placeholders (192.0.2.41 for El Dorado, 192.0.2.87 for Amarillo) because the real addresses are not public. Alert times come from the simulation. <code>connection_flood</code> is a proposed rule: it is not in the released 0.2.0 or in the <a href="/try.html">live demo</a>. The real event was router and network traffic, not SSH logins.</div>
+<div class="callout"><strong>Simulation, not a recording of November 13.</strong> Both routers are shown with RFC 5737 documentation placeholders (192.0.2.41 for El Dorado, 192.0.2.87 for Amarillo) because the real addresses are not public. Alert times come from the simulation. <code>connection_flood</code> is built into sshsentry 2 (the <a href="https://github.com/sshsentry/sshsentry/tree/main/editions/commercial">Commercial Edition</a>, experimental); it is not in the released 0.2.0 or in the <a href="/try.html">live demo</a>. The video and stills were recorded before the rule was built in, so their labels say "proposed." The real event was router and network traffic, not SSH logins.</div>
 <p class="dim" style="font-size:13px"><a href="{A}flood_demo.mp4">Download the MP4</a> (1280&times;720, H.264) &middot; <a href="/reconnect-flood-demo.html">Interactive version</a> (runs in your browser, no network requests)</p></div></section>
 <div class="wrap" id="article" style="padding:24px 24px 40px"><article class="doc" style="margin:0 auto"><span class="label">write-up</span>{art}</article></div>
 <section class="block" id="screenshots"><div class="wrap"><span class="label">01 stills</span><h2>Frame by frame</h2><div class="shots">{shots}</div>
 <p class="dim" style="font-size:13px;margin-top:18px">All frames are from the simulation, with placeholder addresses.</p></div></section>'''
-    page("/reconnect-flood.html", f"{title} | sshsentry", "Demo and write-up: a proposed sshsentry rule that flags a reconnect flood that never logs in, like the pattern the FAA reported on Nov 13, 2026. Simulation with placeholder addresses.", b, "reconnect-flood.html")
+    page("/reconnect-flood.html", f"{title} | sshsentry", "Demo and write-up: the sshsentry 2 Commercial Edition rule that flags a reconnect flood that never logs in, like the pattern the FAA reported on Nov 13, 2026. Simulation with placeholder addresses.", b, "reconnect-flood.html")
     d = os.path.join(OUT, "assets", "reconnect-flood"); os.makedirs(d, exist_ok=True)
     for n in ["flood_demo.mp4"] + [f"{n}.png" for n, _ in FLOOD_SHOTS]:
         if not os.path.exists(os.path.join(d, n)): raise SystemExit(f"missing demo asset: demo/assets/reconnect-flood/{n}")

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Catching a reconnect flood: proposed connection_flood rule (simulation) | SSH Sentry</title>
-<meta name="description" content="Simulation: how a proposed SSH Sentry rule, connection_flood, would flag a router reconnect flood like the one the FAA reported on Nov 13, 2026.">
+<title>Catching a reconnect flood: connection_flood rule (simulation) | SSH Sentry</title>
+<meta name="description" content="Simulation: how the SSH Sentry 2 rule connection_flood flags a router reconnect flood like the one the FAA reported on Nov 13, 2026.">
 <style>
 :root{--bg:#09090b;--bg2:#0f0f12;--panel:#111114;--line:#232329;--line2:#2e2e36;--fg:#e4e4e7;--muted:#a1a1aa;--dim:#71717a;
 --acc:#2dd4bf;--LOW:#86efac;--MEDIUM:#fcd34d;--HIGH:#fb923c;--CRITICAL:#f87171;--ed:#fcd34d;--am:#f472b6;--ok:#86efac;
@@ -164,10 +164,10 @@ body.rec .ctl{display:none}
   <div class="cap"><span class="n" id="capn">1/9</span><span class="txt" id="cap"></span><div class="prg" id="prg"></div></div>
 
   <div class="ov" id="ovTitle"><div class="ovc">
-    <span class="label">SSH Sentry · proposed detection rule</span>
+    <span class="label">SSH Sentry 2 Commercial Edition · detection rule</span>
     <h1>Catching a router reconnect flood</h1>
-    <p class="lead">A simulation of how a proposed rule, <span class="mono" style="color:var(--acc)">connection_flood</span>, would flag the pattern the FAA reported on Nov 13, 2026: about 1,000 connection attempts every 4–5 seconds, none of them logging in.</p>
-    <div class="badges"><span class="badge"><span class="d"></span>simulation</span><span class="badge"><span class="d"></span>simulated addresses (RFC 5737)</span><span class="badge"><span class="d"></span>proposed rule, not in 0.2.0</span></div>
+    <p class="lead">A simulation of how the SSH Sentry 2 rule <span class="mono" style="color:var(--acc)">connection_flood</span> flags the pattern the FAA reported on Nov 13, 2026: about 1,000 connection attempts every 4–5 seconds, none of them logging in.</p>
+    <div class="badges"><span class="badge"><span class="d"></span>simulation</span><span class="badge"><span class="d"></span>simulated addresses (RFC 5737)</span><span class="badge"><span class="d"></span>SSH Sentry 2 rule, not in 0.2.0</span></div>
   </div></div>
 
   <div class="ov" id="ovEnd"><div class="ovc" style="max-width:1080px">
@@ -179,7 +179,7 @@ body.rec .ctl{display:none}
       <tr><td><span style="color:var(--am)">●</span> Amarillo, TX radar-site router</td><td class="m">192.0.2.87</td><td class="m">4,000 in 20 s</td><td style="color:var(--ok)">no alert</td><td style="color:var(--HIGH)">HIGH at attempt #100 (0.50 s in)</td></tr>
       <tr><td><span style="color:var(--acc)">●</span> Ops admin workstation</td><td class="m">198.51.100.23</td><td class="m">1 (logged in)</td><td>normal</td><td>not flagged</td></tr>
     </table>
-    <div class="callout"><strong>What this is and isn't.</strong> This is a simulation. The real Nov 13 event was router traffic on the FAA's FTI network, not SSH logins. SSH Sentry reads SSH logs, so it would only see a flood like this if it hit an SSH server SSH Sentry watches. Router addresses here are placeholders, and <span class="mono">connection_flood</span> is a proposed rule that SSH Sentry 0.2.0 doesn't include yet. FAA figures come from AeroTime and Axios coverage on Nov 16, 2026.</div>
+    <div class="callout"><strong>What this is and isn't.</strong> This is a simulation. The real Nov 13 event was router traffic on the FAA's FTI network, not SSH logins. SSH Sentry reads SSH logs, so it would only see a flood like this if it hit an SSH server SSH Sentry watches. Router addresses here are placeholders, and <span class="mono">connection_flood</span> is built into SSH Sentry 2 (the <a href="https://github.com/sshsentry/sshsentry/tree/main/editions/commercial">Commercial Edition</a>, experimental); the released SSH Sentry 0.2.0 doesn't include it. On-screen labels still say "proposed" because the animation predates the build. FAA figures come from AeroTime and Axios coverage on Nov 16, 2026.</div>
   </div></div>
 </div></div>
 
